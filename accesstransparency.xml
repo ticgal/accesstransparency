@@ -1,0 +1,46 @@
+<root>
+   <name>Access Transparency</name>
+   <key>accesstransparency</key>
+   <state>stable</state> <!-- stable | unstable | beta | alpha -->
+   <logo>https://raw.githubusercontent.com/ticgal/accesstransparency/multimedia/accesstransparency.png</logo>
+   <description>
+      <short>
+	      <en>The Access Transparency plugin is a tool for GLPI that adds a new tab to each user profile, showing a centralized view of all actions performed by that user across the system. It displays a filtered log of activities—such as changes in software, computers, projects, and tickets—allowing administrators to easily track and audit user actions</en>
+      </short>
+      <long>
+	     <en>
+	      The Access Transparency plugin is a tool for GLPI that adds a new tab to each user profile, showing a centralized view of all actions performed by that user across the system. It displays a filtered log of activities—such as changes in software, computers, projects, and tickets—allowing administrators to easily track and audit user actions. The plugin leverages existing log data, requires no new database fields, and aims to provide an easy-to-use, paginated, and filterable interface similar to the current asset history view.
+	     </en>
+      </long>
+   </description>
+   <homepage>https://tic.gal/glpi/glpi-plugins/accesstransparency/</homepage>
+   <download>https://github.com/ticgal/accesstransparency/releases</download>
+   <issues>https://github.com/ticgal/accesstransparency/issues</issues>
+   <readme>https://github.com/ticgal/accesstransparency/blob/master/README.md</readme>
+   <authors>
+      <author>TICgal</author>
+   </authors>
+   <versions>
+       <version>
+            <num>1.0.0</num>
+            <compatibility>~11.0.0</compatibility>
+            <download_url>https://github.com/ticgal/accesstransparency/releases/download/1.0.0/glpi-accesstransparency-1.0.0.tar.bz2</download_url>
+       </version>
+   </versions>
+   <langs>
+      <lang>en_GB</lang>
+   </langs>
+   <license>AGPL v3+</license>
+   <tags>
+      	<en>
+          <tag>user</tag>
+    	    <tag>setup</tag>
+	        <tag>security</tag>
+        </en>
+   </tags>
+   <screenshots>
+      <screenshot>https://raw.githubusercontent.com/ticgal/accesstransparency/multimedia/accesstransparency-glpi-plugin-1.png</screenshot>
+      <screenshot>https://raw.githubusercontent.com/ticgal/accesstransparency/multimedia/accesstransparency-glpi-plugin-2.png</screenshot>
+      <screenshot>https://raw.githubusercontent.com/ticgal/accesstransparency/multimedia/accesstransparency-glpi-plugin-3.png</screenshot>
+   </screenshots>
+</root>
