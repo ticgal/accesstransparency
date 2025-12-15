@@ -1,0 +1,44 @@
+<root>
+   <name>xxxxxxxx</name>
+   <key>xxxxxxxx</key>
+   <state>stable</state> <!-- stable | unstable | beta | alpha -->
+   <logo>https://raw.githubusercontent.com/ticgal/xxxxxxxx/multimedia/xxxxxxxx.png</logo>
+   <description>
+      <short>
+	<en></en>
+      </short>
+      <long>
+	     <en><en>
+      </long>
+   </description>
+   <homepage>https://tic.gal/glpi/glpi-plugins/xxxxxxxx/</homepage>
+   <download>https://github.com/ticgal/xxxxxxxx/releases</download>
+   <issues>https://github.com/ticgal/xxxxxxxx/issues</issues>
+   <readme>https://github.com/ticgal/xxxxxxxx/blob/master/README.md</readme>
+   <authors>
+      <author>TICgal</author>
+   </authors>
+   <versions>
+       <version>
+            <num>1.0.0</num>
+            <compatibility>~10.0.0</compatibility>
+            <download_url>https://github.com/ticgal/xxxxxxxx/releases/download/1.0.0/glpi-xxxxxxxx-1.0.0.tar.tgz</download_url>
+       </version>
+   </versions>
+   <langs>
+      <lang>en_GB</lang>
+   </langs>
+   <license>AGPL v3+</license>
+   <tags>
+      	<en>
+            <tag>Inventory</tag>
+    	    <tag>Helpdesk</tag>
+	    <tag>Ticket</tag>
+        </en>
+   </tags>
+   <screenshots>
+      <screenshot>https://raw.githubusercontent.com/ticgal/xxxxxxxx/multimedia/xxxxxxxx-glpi-plugin-1.png</screenshot>
+      <screenshot>https://raw.githubusercontent.com/ticgal/xxxxxxxx/multimedia/xxxxxxxx-glpi-plugin-2.png</screenshot>
+      <screenshot>https://raw.githubusercontent.com/ticgal/xxxxxxxx/multimedia/xxxxxxxx-glpi-plugin-3.png</screenshot>
+   </screenshots>
+</root>
