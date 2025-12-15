@@ -21,7 +21,7 @@
    <versions>
        <version>
             <num>1.0.0</num>
-            <compatibility>~10.0.0</compatibility>
+            <compatibility>~11.0.0</compatibility>
             <download_url>https://github.com/ticgal/xxxxxxxx/releases/download/1.0.0/glpi-xxxxxxxx-1.0.0.tar.tgz</download_url>
        </version>
    </versions>
@@ -31,9 +31,9 @@
    <license>AGPL v3+</license>
    <tags>
       	<en>
-            <tag>Inventory</tag>
-    	    <tag>Helpdesk</tag>
-	    <tag>Ticket</tag>
+            <tag>user</tag>
+    	    <tag>setup</tag>
+	        <tag>security</tag>
         </en>
    </tags>
    <screenshots>
