@@ -5,7 +5,7 @@
    <logo>https://raw.githubusercontent.com/ticgal/xxxxxxxx/multimedia/xxxxxxxx.png</logo>
    <description>
       <short>
-	<en></en>
+	    <en>The Access Transparency plugin is a tool for GLPI that adds a new tab to each user profile, showing a centralized view of all actions performed by that user across the system. It displays a filtered log of activities—such as changes in software, computers, projects, and tickets—allowing administrators to easily track and audit user actions</en>
       </short>
       <long>
 	     <en><en>
