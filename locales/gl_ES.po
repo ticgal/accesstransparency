@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Access Transparency\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-19 13:47+0000\n"
+"POT-Creation-Date: 2026-10-01 13:24+0200\n"
 "Language: gl_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -10,47 +10,91 @@ msgstr ""
 "X-Generator: Localazy (https://localazy.com)\n"
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
 
-#: inc/profile.class.php:84 inc/document.class.php:42
+#: front/export_document_csv.php:67 entrada estándar:47
+msgid "Opened from"
+msgstr "Aberto dende"
+
+#: inc/document.class.php:39 inc/profile.class.php:88
 msgid "Access Transparency"
 msgstr "Access Transparency"
 
-#: inc/userinteractions.class.php:118
-msgid "Purge old interaction logs"
-msgstr "Borrar rexistros de interaccións antigas"
+#: inc/config.class.php:106
+msgid "Keep all logs"
+msgstr "Conservar todos os rexistros"
 
-#: inc/userinteractions.class.php:119
-msgid "Retention period (in months)"
-msgstr "Período de retención (en meses)"
-
-#: inc/userinteractions.class.php:134
-msgid "No logs purged (keep_all setting)"
-msgstr "Non se purgaron rexistros (configuración keep_all)"
-
-#: inc/userinteractions.class.php:159
-msgid "No logs to purge"
-msgstr "Non hai rexistros para limpar"
-
-#: inc/userinteractions.class.php:173
+#: inc/config.class.php:109
 #, php-format
-msgid "Purged %d interaction logs"
-msgstr "Purgados %d rexistros de interacción"
+msgid "Delete if older than %s month"
+msgid_plural "Delete if older than %s months"
+msgstr[0] "Eliminar se ten máis de %s mes"
+msgstr[1] "Eliminar se ten máis de %s meses"
 
-#: inc/config.class.php:144
-msgid "Configuration saved successfully"
-msgstr "Configuración gardada correctamente"
+#: inc/config.class.php:176
+msgid "Purge old logs"
+msgstr "Purgar rexistros antigos"
 
-#: templates/pages/config.html.twig:36
-msgid "Access Transparency Logs purge configuration"
-msgstr "Configuración de purga de rexistros de Access Transparency"
+#: inc/log.class.php:48
+msgid "Get logs"
+msgstr "Obter rexistros"
 
-#: templates/pages/config.html.twig:55
+#: inc/log.class.php:48
+msgid "Limit number of logs to retrieve"
+msgstr "Límite de rexistros a obter"
+
+#: inc/log.class.php:298
+msgid "Log entry"
+msgstr "Entrada do historial"
+
+#: inc/log.class.php:299
+msgid "Event"
+msgstr "Evento"
+
+#: inc/log.class.php:300
+msgid "Document access"
+msgstr "Acceso a documento"
+
+#: inc/log.class.php:415
+msgid "Item not available or not visible to you"
+msgstr "Elemento non dispoñible ou non visible para vostede"
+
+#: inc/log.class.php:439
+#, php-format
+msgid "%s event: %s"
+msgstr "Evento %s: %s"
+
+#: inc/log.class.php:446
+#, php-format
+msgid "Accessed document #%d"
+msgstr "Acceso ao documento #%d"
+
+#: inc/log.class.php:451
+#, php-format
+msgid "(opened from %s)"
+msgstr "(aberto dende %s)"
+
+#: inc/log.class.php:563
+#, php-format
+msgid "Unknown itemtype: %s"
+msgstr "Tipo de elemento descoñecido: %s"
+
+#: entrada estándar:39
+msgid "Access Transparency Logs Configuration"
+msgstr "Configuración dos rexistros de Access Transparency"
+
+#: entrada estándar:43
 msgid "Log retention"
 msgstr "Retención de rexistros"
 
-#: templates/pages/config.html.twig:58
-msgid "Select how long to keep logs"
-msgstr "Seleccionar canto tempo se gardarán os rexistros"
+#: entrada estándar:45
+msgid "Excluded logins"
+msgstr "Logins excluídos"
 
-#: templates/pages/config.html.twig:77
-msgid "Save"
-msgstr "Gardar"
+#: entrada estándar:46
+msgid ""
+"Comma-separated logins (e.g. service or inventory accounts such as glpi-"
+"agent). Nothing is recorded for these accounts: neither their document "
+"accesses nor their history and events."
+msgstr ""
+"Logins separados por comas (p. ex. contas de servizo ou de inventario como "
+"glpi-agent). Non se rexistra nada destas contas: nin os seus accesos a "
+"documentos nin o seu historial e eventos."
