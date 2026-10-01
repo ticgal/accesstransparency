@@ -209,7 +209,7 @@ class PluginAccesstransparencyConfig extends CommonDBTM
 
    public static function getIcon(): string
    {
-      return 'fa-solid fa-cube';
+      return 'ti ti-window';
    }
 
    public static function install(Migration $migration): void

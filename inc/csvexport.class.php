@@ -30,39 +30,48 @@
  */
 
 
-use Glpi\Exception\Http\NotFoundHttpException;
+use Glpi\Csv\ExportToCsvInterface;
 
-if (!Plugin::isPluginActive('accesstransparency')) {
-   throw new NotFoundHttpException();
+/**
+ * CSV export of the rows displayed on the User and Document tabs.
+ */
+class PluginAccesstransparencyCsvexport implements ExportToCsvInterface
+{
+   /**
+    * @param string $filename
+    * @param string[] $header
+    * @param array<array<string|int|null>> $rows Values may contain the HTML built for the tabs
+    */
+   public function __construct(
+      private string $filename,
+      private array $header,
+      private array $rows
+   ) {
+   }
+
+   public function getFileName(): ?string
+   {
+      return $this->filename;
+   }
+
+   public function getFileHeader(): array
+   {
+      return $this->header;
+   }
+
+   public function getFileContent(): array
+   {
+      return array_map(
+         static fn(array $row) => array_map([self::class, 'toText'], $row),
+         $this->rows
+      );
+   }
+
+   /**
+    * Convert the HTML of a displayed value (escaped text, links, <del>/<ins>) back to plain text.
+    */
+   public static function toText($value): string
+   {
+      return trim(html_entity_decode(strip_tags((string)$value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+   }
 }
-
-Session::checkRight(PluginAccesstransparencyLog::$rightname, READ);
-
-$user = new User();
-$users_id = (int)($_GET['id'] ?? 0);
-// Same checks as the User tab: the user must exist and be visible to the viewer
-if ($users_id <= 0 || !$user->getFromDB($users_id) || !$user->canViewItem()) {
-   throw new NotFoundHttpException();
-}
-
-$filters = $_GET['filters'] ?? [];
-if (!is_array($filters)) {
-   $filters = [];
-}
-$sql_filters = PluginAccesstransparencyLog::convertFiltersValuesToSqlCriteria($filters);
-
-$rows = [];
-foreach (PluginAccesstransparencyLog::getHistoryData($user, 0, 0, $sql_filters) as $log) {
-   $rows[] = [
-      $log['id'],
-      $log['source_type'],
-      $log['source_date'],
-      $log['message'],
-   ];
-}
-
-\Glpi\Csv\CsvResponse::output(new PluginAccesstransparencyCsvexport(
-   sprintf('accesstransparency-user-%d.csv', $users_id),
-   [__('ID'), __('Source'), _n('Date', 'Dates', 1), __('Message')],
-   $rows
-));

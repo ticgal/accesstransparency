@@ -40,7 +40,7 @@ class PluginAccesstransparencyDocument extends CommonDBTM
    }
    public static function getIcon(): string
    {
-      return 'fa-solid fa-cube';
+      return 'ti ti-window';
    }
 
    public static function getDistinctUserNamesValuesInItemLog(CommonDBTM $item): array
@@ -109,8 +109,8 @@ class PluginAccesstransparencyDocument extends CommonDBTM
 
    public static function displayUserInteractionsForDocument(Document $doc)
    {
-      /** @var \DBmysql $DB */
-      global $DB;
+      /** @var array $CFG_GLPI */
+      global $CFG_GLPI;
 
       $document_id = intval($doc->getID());
 
@@ -138,6 +138,10 @@ class PluginAccesstransparencyDocument extends CommonDBTM
          'items_id'          => $document_id,
          'filters'           => $filters,
          'user_names'        => self::getDistinctUserNamesValuesInItemLog($doc),
+         'csv_url'           => $CFG_GLPI['root_doc'] . '/plugins/accesstransparency/front/export_document_csv.php?' . http_build_query([
+            'id'      => $document_id,
+            'filters' => $filters,
+         ]),
       ]);
 
       return true;

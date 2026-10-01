@@ -47,7 +47,7 @@ class PluginAccesstransparencyProfile extends CommonDBTM
 
    public static function getIcon(): string
    {
-      return 'fa-solid fa-cube';
+      return 'ti ti-window';
    }
 
    /**

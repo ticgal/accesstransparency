@@ -310,7 +310,7 @@ class PluginAccesstransparencyLog extends CommonDBTM
 
    public static function getIcon()
    {
-      return 'fa-solid fa-cube';
+      return 'ti ti-window';
    }
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0)
@@ -377,6 +377,10 @@ class PluginAccesstransparencyLog extends CommonDBTM
          'type_source'   => $is_filtered
             ? self::getSourceType()
             : [],
+         'csv_url'           => $CFG_GLPI['root_doc'] . '/plugins/accesstransparency/front/export_user_csv.php?' . http_build_query([
+            'id'      => $items_id,
+            'filters' => $filters,
+         ]),
       ]);
    }
 
@@ -417,10 +421,16 @@ class PluginAccesstransparencyLog extends CommonDBTM
          switch ($data['source_type']) {
             case self::LOG:
                $logmessage = self::getLogMessage($data);
+               // canViewRowItem() already checked that the item exists and is readable
+               $itemtype = $data['itemtype'];
+               $item_label = sprintf('%s #%d', $itemtype::getTypeName(1), $data['items_id']);
                $tmp['message'] = sprintf(
-                  __s('%s #%d: %s', 'accesstransparency'),
-                  htmlescape($data['itemtype']),
-                  $data['items_id'],
+                  __s('%1$s: %2$s'),
+                  sprintf(
+                     '<a href="%s">%s</a>',
+                     htmlescape($itemtype::getFormURLWithID($data['items_id'])),
+                     htmlescape($item_label)
+                  ),
                   $logmessage
                );
                break;

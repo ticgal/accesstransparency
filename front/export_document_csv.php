@@ -36,12 +36,12 @@ if (!Plugin::isPluginActive('accesstransparency')) {
    throw new NotFoundHttpException();
 }
 
-Session::checkRight(PluginAccesstransparencyLog::$rightname, READ);
+Session::checkRight(PluginAccesstransparencyDocument::$rightname, READ);
 
-$user = new User();
-$users_id = (int)($_GET['id'] ?? 0);
-// Same checks as the User tab: the user must exist and be visible to the viewer
-if ($users_id <= 0 || !$user->getFromDB($users_id) || !$user->canViewItem()) {
+$doc = new Document();
+$documents_id = (int)($_GET['id'] ?? 0);
+// Same checks as the Document tab: the document must exist and be visible to the viewer
+if ($documents_id <= 0 || !$doc->getFromDB($documents_id) || !$doc->canViewItem()) {
    throw new NotFoundHttpException();
 }
 
@@ -49,20 +49,21 @@ $filters = $_GET['filters'] ?? [];
 if (!is_array($filters)) {
    $filters = [];
 }
+$filters['source'] = [PluginAccesstransparencyLog::DOCUMENT];
 $sql_filters = PluginAccesstransparencyLog::convertFiltersValuesToSqlCriteria($filters);
 
 $rows = [];
-foreach (PluginAccesstransparencyLog::getHistoryData($user, 0, 0, $sql_filters) as $log) {
+foreach (PluginAccesstransparencyDocument::getHistoryData($doc, 0, 0, $sql_filters) as $log) {
    $rows[] = [
       $log['id'],
-      $log['source_type'],
       $log['source_date'],
-      $log['message'],
+      $log['user_name'],
+      $log['opened_from'] !== null ? sprintf(__('%1$s: %2$s'), $log['opened_from']['label'], $log['opened_from']['name']) : '',
    ];
 }
 
 \Glpi\Csv\CsvResponse::output(new PluginAccesstransparencyCsvexport(
-   sprintf('accesstransparency-user-%d.csv', $users_id),
-   [__('ID'), __('Source'), _n('Date', 'Dates', 1), __('Message')],
+   sprintf('accesstransparency-document-%d.csv', $documents_id),
+   [__('ID'), _n('Date', 'Dates', 1), User::getTypeName(1), __('Opened from', 'accesstransparency')],
    $rows
 ));
