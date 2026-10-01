@@ -48,7 +48,67 @@ function plugin_accesstransparency_install(): bool
       }
    }
 
+   $migration->executeMigration();
+
+   plugin_accesstransparency_migrate_legacy_tables($migration);
+
    return true;
+}
+
+/**
+ * Bring the data of previous versions into the logs table, then drop their tables.
+ *
+ * - glpi_plugin_accesstransparency_userinteractions: document accesses of 1.0.x/1.1.x
+ *   (and of the TICGAL-Dev/marketplace line), the only data that exists nowhere else.
+ * - glpi_plugin_accesstransparency_lastLog / _logevents: 1.1.x copies of glpi_logs/glpi_events,
+ *   re-imported from GLPI by the log ingestion cron.
+ *
+ * @return void
+ */
+function plugin_accesstransparency_migrate_legacy_tables(Migration $migration): void
+{
+   /** @var \DBmysql $DB */
+   global $DB;
+
+   $old_table = 'glpi_plugin_accesstransparency_userinteractions';
+   if ($DB->tableExists($old_table)) {
+      $migration->displayMessage("Migrating $old_table");
+
+      $logs_table = PluginAccesstransparencyLog::getTable();
+      $has_source_item = $DB->fieldExists($old_table, 'source_itemtype') && $DB->fieldExists($old_table, 'source_items_id');
+      foreach ($DB->request(['FROM' => $old_table, 'ORDER' => 'id ASC']) as $row) {
+         // The document id column changed name across versions, and 1.0.x only stored the path
+         $docid = (int)($row['documents_id'] ?? $row['document_id'] ?? 0);
+         if ($docid <= 0 && preg_match('/docid=(\d+)/', (string)$row['path'], $matches)) {
+            $docid = (int)$matches[1];
+         }
+         if ($docid <= 0 || (int)$row['users_id'] <= 0) {
+            continue;
+         }
+
+         $DB->insert($logs_table, [
+            'source_type'     => PluginAccesstransparencyLog::DOCUMENT,
+            'source_id'       => $docid,
+            'source_date'     => $row['date_creation'],
+            'users_id'        => (int)$row['users_id'],
+            'itemtype'        => Document::getType(),
+            'items_id'        => $docid,
+            'new_value'       => mb_substr((string)$row['path'], 0, 255),
+            'source_itemtype' => $has_source_item ? $row['source_itemtype'] : null,
+            'source_items_id' => $has_source_item ? (int)$row['source_items_id'] : 0,
+            'date_creation'   => $row['date_creation'],
+         ]);
+      }
+
+      $migration->dropTable($old_table);
+   }
+
+   foreach (['glpi_plugin_accesstransparency_lastLog', 'glpi_plugin_accesstransparency_logevents'] as $table) {
+      $migration->dropTable($table);
+   }
+
+   // Purge task of the removed PluginAccesstransparencyUserinteractions class
+   $DB->delete(CronTask::getTable(), ['itemtype' => 'PluginAccesstransparencyUserinteractions']);
 }
 
 /**
@@ -122,6 +182,22 @@ function plugin_accesstransparency_uninstall(): bool
          }
       }
    }
+
+   // Tables of previous versions that may still be there
+   foreach (
+      [
+         'glpi_plugin_accesstransparency_userinteractions',
+         'glpi_plugin_accesstransparency_lastLog',
+         'glpi_plugin_accesstransparency_logevents',
+      ] as $table
+   ) {
+      $migration->dropTable($table);
+   }
+
+   $migration->executeMigration();
+
+   // GLPI does not remove the automatic actions of an uninstalled plugin
+   CronTask::unregister('accesstransparency');
 
    return true;
 }

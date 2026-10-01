@@ -43,8 +43,8 @@ class PluginAccesstransparencyLog extends CommonDBTM
 
    static function cronInfo(string $name)
    {
-      switch ($name) {
-         case 'PluginAccesstransparencyGetLogs':
+      switch (strtolower($name)) {
+         case 'pluginaccesstransparencygetlogs':
             return ['description' => __('Get logs', 'accesstransparency'), 'parameter' => __('Limit number of logs to retrieve', 'accesstransparency')];
       }
       return [];
@@ -57,77 +57,62 @@ class PluginAccesstransparencyLog extends CommonDBTM
       $tot = 0;
 
       $limit = (int)$crontask->fields['param'];
+      $config = PluginAccesstransparencyConfig::getInstance();
+      $excluded_users = array_flip(PluginAccesstransparencyConfig::getExcludedUsersIds());
+
+      // The cursors store the last *scanned* source id, not the last inserted one:
+      // rows that can't be attributed to a user must not be read again on every run.
+      $last_log_id = (int)($config->fields['last_log_id'] ?? 0);
+      $last_event_id = (int)($config->fields['last_event_id'] ?? 0);
 
       // Get logs to retrieve
-      $last_id = 0;
-      $query = [
-         'SELECT' => 'source_id',
-         'FROM' => self::getTable(),
-         'WHERE' => [
-            'source_type' => self::LOG,
-         ],
-         'ORDER' => 'source_id DESC',
-      ];
-      $result = $DB->request($query);
-      if ($row = $result->current()) {
-         $last_id = $row['source_id'];
-      }
-
       $query = [
          'FROM' => Log::getTable(),
          'WHERE' => [
-            'id' => ['>', $last_id],
+            'id' => ['>', $last_log_id],
          ],
+         'ORDER' => 'id ASC',
       ];
       if ($limit > 0) {
          $query['LIMIT'] = $limit;
       }
       $result = $DB->request($query);
       foreach ($result as $row) {
-         $user_id = 0;
-         if (!empty($row['user_name']) && preg_match('/\((\d+)\)/', $row['user_name'], $matches)) {
-            $user_id = (int)$matches[1];
+         $last_log_id = (int)$row['id'];
+         foreach (self::getUsersIdsFromLogUserName((string)$row['user_name']) as $user_id) {
+            if (isset($excluded_users[$user_id])) {
+               continue;
+            }
+            $log = new self();
+            $log->add([
+               'source_type' => self::LOG,
+               'source_id' => $row['id'],
+               'source_date' => $row['date_mod'],
+               'users_id' => $user_id,
+               'itemtype' => $row['itemtype'],
+               'items_id' => $row['items_id'],
+               'action_code' => $row['linked_action'],
+               'id_search_option' => $row['id_search_option'],
+               'old_value' => $row['old_value'],
+               'new_value' => $row['new_value'],
+            ]);
+            $tot++;
          }
-         if ($user_id <= 0) {
-            continue;
-         }
-         $log = new self();
-         $log->add([
-            'source_type' => self::LOG,
-            'source_id' => $row['id'],
-            'source_date' => $row['date_mod'],
-            'users_id' => $user_id,
-            'itemtype' => $row['itemtype'],
-            'items_id' => $row['items_id'],
-            'action_code' => $row['linked_action'],
-            'id_search_option' => $row['id_search_option'],
-            'old_value' => $row['old_value'],
-            'new_value' => $row['new_value'],
-         ]);
-         $tot++;
       }
+      self::saveCursors(['last_log_id' => $last_log_id]);
 
       //Get events to retrieve
-      $last_id = 0;
-      $query = [
-         'SELECT' => 'source_id',
-         'FROM' => self::getTable(),
-         'WHERE' => [
-            'source_type' => self::EVENT,
-         ],
-         'ORDER' => 'source_id DESC',
-      ];
-      $result = $DB->request($query);
-      if ($row = $result->current()) {
-         $last_id = $row['source_id'];
-      }
       $query = [
          'FROM' => Glpi\Event::getTable(),
          'WHERE' => [
-            'id' => ['>', $last_id],
+            'id' => ['>', $last_event_id],
             'OR' => [
                [
                   'service' => 'login',
+                  'level' => 3
+               ],
+               [
+                  'service' => 'Impersonate',
                   'level' => 3
                ],
                [
@@ -137,36 +122,83 @@ class PluginAccesstransparencyLog extends CommonDBTM
                [
                   'service' => 'inventory',
                   'level' => 4
-               ]
+               ],
+               [
+                  'service' => 'massiveaction',
+                  'level' => 4
+               ],
+               [
+                  'service' => 'setup',
+                  'level' => [3, 4]
+               ],
             ]
          ],
+         'ORDER' => 'id ASC',
       ];
       if ($limit > 0) {
          $query['LIMIT'] = $limit;
       }
       $result = $DB->request($query);
       foreach ($result as $row) {
-         $user_id = self::resolveUserIdFromEventMessage((string)$row['message']);
+         $last_event_id = (int)$row['id'];
 
-         if ($user_id <= 0) {
-            continue;
+         if ($row['service'] === 'Impersonate') {
+            // "A starts/stops impersonating user B": the event concerns both users
+            $users_ids = self::findUsersIdsInEventMessage((string)$row['message']);
+         } else {
+            $user_id = self::resolveUserIdFromEventMessage((string)$row['message']);
+            $users_ids = $user_id > 0 ? [$user_id] : [];
          }
-         $log = new self();
-         $log->add([
-            'source_type' => self::EVENT,
-            'source_id' => $row['id'],
-            'source_date' => $row['date'],
-            'users_id' => $user_id,
-            'items_id' => $row['items_id'],
-            'severity_level' => $row['level'],
-            'message' => $row['message'],
-            'service' => $row['service'],
-         ]);
-         $tot++;
+
+         foreach ($users_ids as $user_id) {
+            if (isset($excluded_users[$user_id])) {
+               continue;
+            }
+            $log = new self();
+            $log->add([
+               'source_type' => self::EVENT,
+               'source_id' => $row['id'],
+               'source_date' => $row['date'],
+               'users_id' => $user_id,
+               'items_id' => $row['items_id'],
+               'severity_level' => $row['level'],
+               'message' => $row['message'],
+               'service' => $row['service'],
+               // itemtype of the event item, used to check the viewer can see it
+               'field' => self::resolveEventItemtype((string)$row['type']),
+            ]);
+            $tot++;
+         }
       }
+      self::saveCursors(['last_event_id' => $last_event_id]);
 
       $crontask->setVolume($tot);
       return ($tot > 0 ? 1 : 0);
+   }
+
+   private static function saveCursors(array $cursors): void
+   {
+      /** @var \DBmysql $DB */
+      global $DB;
+
+      $config = PluginAccesstransparencyConfig::getInstance();
+      $DB->update(PluginAccesstransparencyConfig::getTable(), $cursors, ['id' => $config->getID()]);
+      $config->fields = $cursors + $config->fields;
+   }
+
+   /**
+    * Users of a glpi_logs.user_name value, e.g. "John Doe (5)".
+    * When impersonation is active it is "A (5) impersonated by B (7)": the row is attributed to both users.
+    *
+    * @return int[]
+    */
+   public static function getUsersIdsFromLogUserName(string $user_name): array
+   {
+      if ($user_name === '' || !preg_match_all('/\((\d+)\)/', $user_name, $matches)) {
+         return [];
+      }
+
+      return array_values(array_unique(array_filter(array_map('intval', $matches[1]), static fn($id) => $id > 0)));
    }
 
    /**
@@ -180,35 +212,7 @@ class PluginAccesstransparencyLog extends CommonDBTM
     */
    private static function resolveUserIdFromEventMessage(string $message): int
    {
-      global $DB;
-
-      $message = trim($message);
-      if ($message === '') {
-         return 0;
-      }
-
-      $query = [
-         'SELECT' => ['id', 'name'],
-         'FROM' => User::getTable(),
-         'WHERE' => [
-            'name' => ['!=', ''],
-            new \Glpi\DBAL\QueryExpression('INSTR(' . $DB->quoteValue($message) . ', ' . DBmysql::quoteName('name') . ') > 0'),
-         ],
-      ];
-
-      $result = $DB->request($query);
-
-      $matches = [];
-      foreach ($result as $row) {
-         $name = (string)$row['name'];
-         if ($name === '') {
-            continue;
-         }
-         $matches[] = [
-            'id' => (int)$row['id'],
-            'name' => $name,
-         ];
-      }
+      $matches = self::findUsersInEventMessage($message);
 
       if (count($matches) === 1) {
          return $matches[0]['id'];
@@ -230,6 +234,61 @@ class PluginAccesstransparencyLog extends CommonDBTM
       }
 
       return 0;
+   }
+
+   /**
+    * IDs of all the users whose login appears in the event message as a whole word.
+    *
+    * @return int[]
+    */
+   private static function findUsersIdsInEventMessage(string $message): array
+   {
+      $ids = [];
+      foreach (self::findUsersInEventMessage($message) as $match) {
+         // INSTR also matches logins contained in other words ("ad" in "admin")
+         if (preg_match('/(?<![\w.@-])' . preg_quote($match['name'], '/') . '(?![\w.@-])/u', $message)) {
+            $ids[] = $match['id'];
+         }
+      }
+      return $ids;
+   }
+
+   /**
+    * Users whose login is contained in the event message.
+    *
+    * @return array<array{id: int, name: string}>
+    */
+   private static function findUsersInEventMessage(string $message): array
+   {
+      global $DB;
+
+      $message = trim($message);
+      if ($message === '') {
+         return [];
+      }
+
+      $query = [
+         'SELECT' => ['id', 'name'],
+         'FROM' => User::getTable(),
+         'WHERE' => [
+            'name' => ['!=', ''],
+            new \Glpi\DBAL\QueryExpression('INSTR(' . $DB->quoteValue($message) . ', ' . DBmysql::quoteName('name') . ') > 0'),
+         ],
+      ];
+
+      $matches = [];
+      foreach ($DB->request($query) as $row) {
+         $name = (string)$row['name'];
+         if ($name === '') {
+            continue;
+         }
+         $matches[] = [
+            'id' => (int)$row['id'],
+            'name' => $name,
+         ];
+      }
+
+      return $matches;
    }
 
    public static function getSourceType()
@@ -1004,7 +1063,7 @@ class PluginAccesstransparencyLog extends CommonDBTM
                `source_items_id` INT {$default_key_sign} NOT NULL default 0,
 				   `date_creation` TIMESTAMP NULL DEFAULT NULL,
                PRIMARY KEY (`id`),
-               KEY `users_id` (`users_id`),
+               KEY `users_id_source_date` (`users_id`, `source_date`),
 				   KEY `item` (`itemtype`, `items_id`),
 				   KEY `source` (`source_type`, `source_id`),
 				   KEY `source_date` (`source_date`),
@@ -1016,6 +1075,9 @@ class PluginAccesstransparencyLog extends CommonDBTM
          // 1.3.0: item a document was opened from
          $migration->addField($table, 'source_itemtype', 'string', ['after' => 'service']);
          $migration->addField($table, 'source_items_id', 'fkey', ['after' => 'source_itemtype']);
+         // 1.3.0: the User tab filters by users_id and sorts by source_date
+         $migration->addKey($table, ['users_id', 'source_date'], 'users_id_source_date');
+         $migration->dropKey($table, 'users_id');
       }
    }
 

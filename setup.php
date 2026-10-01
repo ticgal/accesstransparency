@@ -83,7 +83,7 @@ function plugin_init_accesstransparency(): void
          'state' => 1,
          'mode' => CronTask::MODE_EXTERNAL,
          'hourmin' => 0,
-         'horumax' => 24
+         'hourmax' => 24
       ],
    );
 
@@ -95,7 +95,7 @@ function plugin_init_accesstransparency(): void
          'state' => 1,
          'mode' => CronTask::MODE_EXTERNAL,
          'hourmin' => 0,
-         'horumax' => 24
+         'hourmax' => 24
       ],
    );
 }

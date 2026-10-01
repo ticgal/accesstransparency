@@ -171,7 +171,7 @@ class PluginAccesstransparencyConfig extends CommonDBTM
 
    public static function cronInfo(string $name)
    {
-      switch ($name) {
+      switch (strtolower($name)) {
          case 'purgeaccesstransparencylogs':
             return ['description' => __('Purge old logs', 'accesstransparency')];
       }
@@ -181,21 +181,30 @@ class PluginAccesstransparencyConfig extends CommonDBTM
 
    public static function cronPurgeAccessTransparencyLogs(CronTask $crontask)
    {
+      /** @var \DBmysql $DB */
+      global $DB;
 
       $config = self::getInstance();
-      $time  = $config->fields['log_retention_minutes'];
+      $time  = $config->fields['log_retention_minutes'] ?? self::KEEP_ALL;
 
-      $log = new PluginAccesstransparencyLog();
-      if ($time === self::KEEP_ALL) {
-         return 1;
-      } else {
-         $months = (int)$time;
-         $log->deleteByCriteria([
-            'source_date' => ['<', date('Y-m-d H:i:s', strtotime(sprintf('-%d months', $months)))]
-         ], true);
+      // Anything other than a number of months (keep_all, NULL, legacy values) keeps everything:
+      // (int) of those values is 0, which would purge every row older than now.
+      $months = is_numeric($time) ? (int)$time : 0;
+      if ($months < 1) {
+         return 0;
       }
 
-      return 1;
+      $table = PluginAccesstransparencyLog::getTable();
+      $where = ['source_date' => ['<', date('Y-m-d H:i:s', strtotime(sprintf('-%d months', $months)))]];
+
+      $count = countElementsInTable($table, $where);
+      if ($count > 0) {
+         // One DELETE statement: deleteByCriteria() loads and deletes the rows one by one
+         $DB->delete($table, $where);
+      }
+
+      $crontask->addVolume($count);
+      return $count > 0 ? 1 : 0;
    }
 
    public static function getIcon(): string
@@ -218,6 +227,8 @@ class PluginAccesstransparencyConfig extends CommonDBTM
             `id` INT {$default_key_sign} NOT NULL AUTO_INCREMENT,
             `log_retention_minutes` VARCHAR(50) DEFAULT NULL,
             `excluded_logins` TEXT DEFAULT NULL,
+            `last_log_id` INT {$default_key_sign} NOT NULL DEFAULT 0,
+            `last_event_id` INT {$default_key_sign} NOT NULL DEFAULT 0,
             PRIMARY KEY (`id`)
          )ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC;";
 
@@ -232,6 +243,34 @@ class PluginAccesstransparencyConfig extends CommonDBTM
       } else {
          // 1.3.0 (already present on installs coming from the TICGAL-Dev/marketplace line)
          $migration->addField($table, 'excluded_logins', 'text', ['after' => 'log_retention_minutes']);
+
+         // 1.3.0: cursors of the log ingestion cron, started where the previous version stopped
+         $logs_table = PluginAccesstransparencyLog::getTable();
+         foreach (['last_log_id' => PluginAccesstransparencyLog::LOG, 'last_event_id' => PluginAccesstransparencyLog::EVENT] as $field => $source_type) {
+            if (!$DB->fieldExists($table, $field)) {
+               $migration->addField($table, $field, 'fkey');
+               if ($DB->tableExists($logs_table)) {
+                  $migration->addPostQuery(
+                     "UPDATE `$table` SET `$field` = (SELECT COALESCE(MAX(`source_id`), 0) FROM `$logs_table` WHERE `source_type` = $source_type)"
+                  );
+               }
+            }
+         }
+
+         // 1.1.x leftovers
+         $migration->dropField($table, 'file_log_retention_minutes');
+
+         // The "delete all" option no longer exists, and NULL used to mean "keep all"
+         $migration->addPostQuery($DB->buildUpdate(
+            $table,
+            ['log_retention_minutes' => self::KEEP_ALL],
+            [
+               'OR' => [
+                  ['log_retention_minutes' => null],
+                  ['NOT' => ['log_retention_minutes' => array_merge([self::KEEP_ALL], array_map('strval', range(1, 120)))]],
+               ],
+            ]
+         ));
       }
    }
 
