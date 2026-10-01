@@ -496,7 +496,8 @@ class PluginAccesstransparencyLog extends CommonDBTM
       }
 
       $item = getItemForItemtype($itemtype);
-      return $item !== false && $item->can($items_id, READ);
+      // @phpstan-ignore instanceof.alwaysTrue (getItemForItemtype() returns false for abstract classes)
+      return $item instanceof CommonDBTM && $item->can($items_id, READ);
    }
 
    /**
@@ -512,7 +513,8 @@ class PluginAccesstransparencyLog extends CommonDBTM
       }
 
       $item = getItemForItemtype($itemtype);
-      if ($item === false || !$item->can($items_id, READ)) {
+      // @phpstan-ignore instanceof.alwaysTrue (getItemForItemtype() returns false for abstract classes)
+      if (!($item instanceof CommonDBTM) || !$item->can($items_id, READ)) {
          return null;
       }
 

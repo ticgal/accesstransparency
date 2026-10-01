@@ -79,7 +79,7 @@ class PluginAccesstransparencyDocument extends CommonDBTM
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string|array
    {
-      if (!self::canViewForDocument($item)) {
+      if (!($item instanceof Document) || !self::canViewForDocument($item)) {
          return '';
       }
 
@@ -93,18 +93,16 @@ class PluginAccesstransparencyDocument extends CommonDBTM
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0)
    {
       // The tab content can be requested directly, so the rights are checked again here
-      if (self::canViewForDocument($item)) {
+      if ($item instanceof Document && self::canViewForDocument($item)) {
          self::displayUserInteractionsForDocument($item);
       }
 
       return true;
    }
 
-   private static function canViewForDocument(CommonGLPI $item): bool
+   private static function canViewForDocument(Document $item): bool
    {
-      return $item instanceof Document
-         && Session::haveRight(self::$rightname, READ)
-         && $item->canViewItem();
+      return Session::haveRight(self::$rightname, READ) && $item->canViewItem();
    }
 
    public static function displayUserInteractionsForDocument(Document $doc)
