@@ -44,6 +44,7 @@
 					<th>{{ __('ID') }}</th>
 					<th>{{ _n('Date', 'Dates', 1) }}</th>
 					<th>{{ 'User'|itemtype_name }}</th>
+					<th>{{ __('Opened from', 'accesstransparency') }}</th>
 					<th>
 						<span class="float-end log-toolbar mb-0">
 							<button class="btn btn-sm show_filters {{ filters|length > 0 ? 'btn-secondary active' : 'btn-outline-secondary' }}">
@@ -79,7 +80,7 @@
 								{% endfor %}
 							</select>
 						</td>
-						<td></td>
+						<td colspan="2"></td>
 					</tr>
 				{% endif %}
 
@@ -87,14 +88,25 @@
 			<tbody>
 				{% if filtered_number < 1 %}
 					<tr>
-						<td colspan="4">{{ __('No historical matching your filters') }}</td>
+						<td colspan="5">{{ __('No historical matching your filters') }}</td>
 					</tr>
 				{% else %}
 					{% for entry in logs %}
 						<tr>
 							<td>{{ entry['id'] }}</td>
 							<td>{{ entry['source_date']|formatted_datetime }}</td>
-							<td colspan="2">{{ entry['user_name'] }}</td>
+							<td>
+								{% if entry['users_id'] > 0 %}
+									<a href="{{ 'User'|itemtype_form_path(entry['users_id']) }}">{{ entry['user_name'] }}</a>
+								{% else %}
+									{{ entry['user_name'] }}
+								{% endif %}
+							</td>
+							<td colspan="2">
+								{% if entry['opened_from'] is not null %}
+									<a href="{{ entry['opened_from']['url'] }}">{{ entry['opened_from']['label'] }}: {{ entry['opened_from']['name'] }}</a>
+								{% endif %}
+							</td>
 						</tr>
 					{% endfor %}
 				{% endif %}

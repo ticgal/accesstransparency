@@ -166,7 +166,12 @@ class PluginAccesstransparencyDocument extends CommonDBTM
 
          $tmp['id'] = $data['id'];
          $tmp['source_date'] = $data['source_date'];
+         $tmp['users_id'] = (int)$data['users_id'];
          $tmp['user_name'] = User::getNameForLog($data['users_id']);
+         $tmp['opened_from'] = PluginAccesstransparencyLog::resolveSourceItem(
+            $data['source_itemtype'] ?? null,
+            (int)($data['source_items_id'] ?? 0)
+         );
 
          $logs[] = $tmp;
       }

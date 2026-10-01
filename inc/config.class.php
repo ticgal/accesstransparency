@@ -122,6 +122,53 @@ class PluginAccesstransparencyConfig extends CommonDBTM
       return $input;
    }
 
+   /**
+    * Logins (lowercase) of the accounts that must not be tracked, e.g. service or inventory accounts.
+    *
+    * @return string[]
+    */
+   public function getExcludedLoginsList(): array
+   {
+      $raw = preg_split('/[\r\n,]+/', (string)($this->fields['excluded_logins'] ?? '')) ?: [];
+      $logins = array_filter(array_map(static fn($login) => mb_strtolower(trim($login)), $raw));
+      return array_values(array_unique($logins));
+   }
+
+   /**
+    * Is the given login (default: the current user) excluded from tracking?
+    */
+   public static function isUserExcluded(?string $login = null): bool
+   {
+      $login ??= $_SESSION['glpiname'] ?? '';
+      if ($login === '') {
+         return false;
+      }
+
+      return in_array(mb_strtolower($login), self::getInstance()->getExcludedLoginsList(), true);
+   }
+
+   /**
+    * IDs of the users whose login is excluded from tracking.
+    *
+    * @return int[]
+    */
+   public static function getExcludedUsersIds(): array
+   {
+      /** @var \DBmysql $DB */
+      global $DB;
+
+      $logins = self::getInstance()->getExcludedLoginsList();
+      if ($logins === []) {
+         return [];
+      }
+
+      $ids = [];
+      foreach ($DB->request(['SELECT' => 'id', 'FROM' => User::getTable(), 'WHERE' => ['name' => $logins]]) as $row) {
+         $ids[] = (int)$row['id'];
+      }
+      return $ids;
+   }
+
    public static function cronInfo(string $name)
    {
       switch ($name) {
@@ -170,6 +217,7 @@ class PluginAccesstransparencyConfig extends CommonDBTM
          $query = "CREATE TABLE IF NOT EXISTS `$table` (
             `id` INT {$default_key_sign} NOT NULL AUTO_INCREMENT,
             `log_retention_minutes` VARCHAR(50) DEFAULT NULL,
+            `excluded_logins` TEXT DEFAULT NULL,
             PRIMARY KEY (`id`)
          )ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC;";
 
@@ -179,7 +227,11 @@ class PluginAccesstransparencyConfig extends CommonDBTM
          $config->add([
             'id' => 1,
             'log_retention_minutes' => self::KEEP_ALL,
+            'excluded_logins' => '',
          ]);
+      } else {
+         // 1.3.0 (already present on installs coming from the TICGAL-Dev/marketplace line)
+         $migration->addField($table, 'excluded_logins', 'text', ['after' => 'log_retention_minutes']);
       }
    }
 

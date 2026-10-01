@@ -70,9 +70,8 @@ function plugin_init_accesstransparency(): void
    Plugin::registerClass(PluginAccesstransparencyLog::class, ['addtabon' => User::class]);
    Plugin::registerClass(PluginAccesstransparencyDocument::class, ['addtabon' => Document::class]);
 
-   if (Session::getLoginUserID() && (!isset($_REQUEST['_in_modal']) || !$_REQUEST['_in_modal'])) {
-      $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['accesstransparency'] = ['public/tracking.js'];
-   }
+   // Document downloads are tracked server-side (see hook.php)
+   $PLUGIN_HOOKS[Hooks::POST_INIT]['accesstransparency'] = 'plugin_accesstransparency_track_document_download';
 
    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['accesstransparency'] = 'front/config.form.php';
 

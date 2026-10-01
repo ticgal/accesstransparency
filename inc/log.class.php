@@ -377,6 +377,10 @@ class PluginAccesstransparencyLog extends CommonDBTM
                   __s('Accessed document #%d', 'accesstransparency'),
                   $data['items_id']
                );
+               $source = self::resolveSourceItem($data['source_itemtype'] ?? null, (int)($data['source_items_id'] ?? 0));
+               if ($source !== null) {
+                  $tmp['message'] .= ' ' . sprintf(__s('(opened from %s)', 'accesstransparency'), $source['link']);
+               }
                break;
             default:
                $tmp['message'] = htmlescape($data['message'] ?? '');
@@ -424,6 +428,35 @@ class PluginAccesstransparencyLog extends CommonDBTM
 
       $item = getItemForItemtype($itemtype);
       return $item !== false && $item->can($items_id, READ);
+   }
+
+   /**
+    * Resolve the item a document was opened from (a Ticket, a Change...) into a label and an HTML link.
+    *
+    * @return array{label: string, name: string, url: string, link: string}|null
+    *         null when there is no source item, it no longer exists or the viewer can't read it
+    */
+   public static function resolveSourceItem(?string $itemtype, int $items_id): ?array
+   {
+      if ($itemtype === null || $itemtype === '' || $items_id <= 0 || !is_a($itemtype, CommonDBTM::class, true)) {
+         return null;
+      }
+
+      $item = getItemForItemtype($itemtype);
+      if ($item === false || !$item->can($items_id, READ)) {
+         return null;
+      }
+
+      $name = $item->getNameID(['forceid' => true]);
+      $label = sprintf(__('%1$s: %2$s'), $itemtype::getTypeName(1), $name);
+      $url = $item->getLinkURL();
+
+      return [
+         'label' => $itemtype::getTypeName(1),
+         'name'  => $name,
+         'url'   => $url,
+         'link'  => sprintf('<a href="%s">%s</a>', htmlescape($url), htmlescape($label)),
+      ];
    }
 
    /**
@@ -967,6 +1000,8 @@ class PluginAccesstransparencyLog extends CommonDBTM
                `new_value` varchar(255) DEFAULT NULL,
                `message` TEXT,
                `service` varchar(255) DEFAULT NULL,
+               `source_itemtype` varchar(255) DEFAULT NULL,
+               `source_items_id` INT {$default_key_sign} NOT NULL default 0,
 				   `date_creation` TIMESTAMP NULL DEFAULT NULL,
                PRIMARY KEY (`id`),
                KEY `users_id` (`users_id`),
@@ -977,6 +1012,10 @@ class PluginAccesstransparencyLog extends CommonDBTM
             )ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC;";
 
          $DB->doQuery($query);
+      } else {
+         // 1.3.0: item a document was opened from
+         $migration->addField($table, 'source_itemtype', 'string', ['after' => 'service']);
+         $migration->addField($table, 'source_items_id', 'fkey', ['after' => 'source_itemtype']);
       }
    }
 

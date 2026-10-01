@@ -52,6 +52,59 @@ function plugin_accesstransparency_install(): bool
 }
 
 /**
+ * Record every document download/open, whatever the way the user reached it
+ * (document list, ticket timeline, direct URL...). Called on every request via Hooks::POST_INIT.
+ *
+ * @return void
+ */
+function plugin_accesstransparency_track_document_download(): void
+{
+   // GLPI 11 routes every legacy front/*.php script through public/index.php,
+   // so SCRIPT_NAME is always the front controller: only REQUEST_URI has the requested path.
+   $uri = $_SERVER['REQUEST_URI'] ?? '';
+   if (strpos($uri, '/front/document.send.php') === false || !isset($_GET['docid'])) {
+      return;
+   }
+
+   $docid = filter_var($_GET['docid'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+   $users_id = Session::getLoginUserID();
+   if ($docid === false || !$users_id || PluginAccesstransparencyConfig::isUserExcluded()) {
+      return;
+   }
+
+   // Only record real accesses, with the same checks front/document.send.php does after this hook
+   $doc = new Document();
+   if (!$doc->getFromDB($docid) || !$doc->canViewFile($_GET)) {
+      return;
+   }
+
+   // Document::getDownloadLink($linked_item) appends &itemtype=...&items_id=... when the link is
+   // rendered for a linked item (ticket timeline, change documents...). It is request input:
+   // only keep it when it resolves to a real CommonDBTM class.
+   $source_itemtype = null;
+   $source_items_id = 0;
+   $itemtype = $_GET['itemtype'] ?? null;
+   $items_id = filter_var($_GET['items_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+   if (is_string($itemtype) && $itemtype !== '' && $items_id !== false && is_a($itemtype, CommonDBTM::class, true)) {
+      $source_itemtype = $itemtype;
+      $source_items_id = $items_id;
+   }
+
+   $log = new PluginAccesstransparencyLog();
+   $log->add([
+      'source_type'     => PluginAccesstransparencyLog::DOCUMENT,
+      'source_id'       => $docid,
+      'source_date'     => $_SESSION['glpi_currenttime'],
+      'itemtype'        => Document::getType(),
+      'items_id'        => $docid,
+      'users_id'        => $users_id,
+      'new_value'       => '/front/document.send.php?docid=' . $docid,
+      'source_itemtype' => $source_itemtype,
+      'source_items_id' => $source_items_id,
+   ]);
+}
+
+/**
  * Call all uninstall methods of the plugin
  *
  * @return bool
