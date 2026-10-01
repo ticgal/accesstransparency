@@ -15,6 +15,10 @@
 - Hide the User tab without the plugin right
 - Hide details of items the viewer cannot read (entity isolation)
 - Remove the AJAX endpoint that allowed forging document access records
+- Store and backfill the itemtype of events so their item visibility is checked; hide events whose item is unknown
+- CSV exports require the same User/Document read right as the tabs
+- Neutralise spreadsheet formulas in CSV exports and limit exports to 10,000 rows
+- Attribute events to users only on whole-word login matches
 
 ### Bugfix
 - Log purge no longer deletes every record when the retention is not set

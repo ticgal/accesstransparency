@@ -164,8 +164,8 @@ class PluginAccesstransparencyLog extends CommonDBTM
                'severity_level' => $row['level'],
                'message' => $row['message'],
                'service' => $row['service'],
-               // itemtype of the event item, used to check the viewer can see it
-               'field' => self::resolveEventItemtype((string)$row['type']),
+               // itemtype of the event item, used to check the viewer can see it ('' when there is none)
+               'field' => self::resolveEventItemtype((string)$row['type']) ?? '',
             ]);
             $tot++;
          }
@@ -205,7 +205,7 @@ class PluginAccesstransparencyLog extends CommonDBTM
     * Resolve users_id from a login event message without relying on translated sentence structure.
     *
     * The strategy is:
-    * 1) Find all usernames contained in the event message.
+    * 1) Find all usernames contained in the event message as whole words.
     * 2) If there is a single match, use it.
     * 3) If there are many, keep only usernames that match the start of the message.
     * 4) If still ambiguous, return 0.
@@ -243,18 +243,15 @@ class PluginAccesstransparencyLog extends CommonDBTM
     */
    private static function findUsersIdsInEventMessage(string $message): array
    {
-      $ids = [];
-      foreach (self::findUsersInEventMessage($message) as $match) {
-         // INSTR also matches logins contained in other words ("ad" in "admin")
-         if (preg_match('/(?<![\w.@-])' . preg_quote($match['name'], '/') . '(?![\w.@-])/u', $message)) {
-            $ids[] = $match['id'];
-         }
-      }
-      return $ids;
+      return array_column(self::findUsersInEventMessage($message), 'id');
    }
 
    /**
-    * Users whose login is contained in the event message.
+    * Users whose login appears in the event message as a whole word.
+    *
+    * Failed login messages contain the login exactly as the visitor typed it, so a visitor can still get
+    * an event attributed to a user by typing their login: the message is only ever displayed escaped.
+    * Whole-word matching at least prevents logins contained in other words ("ad" in "admin").
     *
     * @return array<array{id: int, name: string}>
     */
@@ -279,7 +276,7 @@ class PluginAccesstransparencyLog extends CommonDBTM
       $matches = [];
       foreach ($DB->request($query) as $row) {
          $name = (string)$row['name'];
-         if ($name === '') {
+         if ($name === '' || !preg_match('/(?<![\w.@-])' . preg_quote($name, '/') . '(?![\w.@-])/u', $message)) {
             continue;
          }
          $matches[] = [
@@ -474,10 +471,14 @@ class PluginAccesstransparencyLog extends CommonDBTM
             $items_id = (int)($data['items_id'] ?? 0);
             break;
          case self::EVENT:
-            // `field` holds the itemtype resolved from the glpi_events type, stored since 1.3.0.
-            // Events with no itemtype ("system", "dropdown"...) have no item to check.
-            $itemtype = (string)($data['field'] ?? '');
+            // `field` holds the itemtype resolved from the glpi_events type (since 1.3.0, backfilled on upgrade):
+            // '' for events with no itemtype ("system", "dropdown"...), NULL when it is unknown
+            // (source event purged before the backfill). Only events that never concern an item are safe then.
             $items_id = (int)($data['items_id'] ?? 0);
+            if ($data['field'] === null) {
+               return $items_id <= 0 && in_array($data['service'], ['login', 'Impersonate'], true);
+            }
+            $itemtype = (string)$data['field'];
             if ($itemtype === '') {
                return true;
             }
@@ -1087,9 +1088,40 @@ class PluginAccesstransparencyLog extends CommonDBTM
          // 1.3.0: item a document was opened from
          $migration->addField($table, 'source_itemtype', 'string', ['after' => 'service']);
          $migration->addField($table, 'source_items_id', 'fkey', ['after' => 'source_itemtype']);
+         // 1.3.0: store the itemtype of the events ingested before, to check the viewer can see their item
+         self::backfillEventsItemtype();
+
          // 1.3.0: the User tab filters by users_id and sorts by source_date
          $migration->addKey($table, ['users_id', 'source_date'], 'users_id_source_date');
          $migration->dropKey($table, 'users_id');
+      }
+   }
+
+   /**
+    * Fill the itemtype (`field`) of event rows that don't have it, from their source glpi_events row.
+    * Rows whose source event no longer exists stay NULL and are treated as not visible.
+    */
+   private static function backfillEventsItemtype(): void
+   {
+      /** @var \DBmysql $DB */
+      global $DB;
+
+      $table = self::getTable();
+      $events_table = Glpi\Event::getTable();
+      $types = $DB->request([
+         'SELECT'     => "$events_table.type",
+         'DISTINCT'   => true,
+         'FROM'       => $table,
+         'INNER JOIN' => [$events_table => ['ON' => [$table => 'source_id', $events_table => 'id']]],
+         'WHERE'      => ["$table.source_type" => self::EVENT, "$table.field" => null],
+      ]);
+      foreach ($types as $row) {
+         $DB->update(
+            $table,
+            ['field' => self::resolveEventItemtype((string)$row['type']) ?? ''],
+            ["$table.source_type" => self::EVENT, "$table.field" => null, "$events_table.type" => $row['type']],
+            ['INNER JOIN' => [$events_table => ['ON' => [$table => 'source_id', $events_table => 'id']]]]
+         );
       }
    }
 

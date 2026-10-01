@@ -40,8 +40,8 @@ Session::checkRight(PluginAccesstransparencyLog::$rightname, READ);
 
 $user = new User();
 $users_id = (int)($_GET['id'] ?? 0);
-// Same checks as the User tab: the user must exist and be visible to the viewer
-if ($users_id <= 0 || !$user->getFromDB($users_id) || !$user->canViewItem()) {
+// Same checks as the User tab (core checks can(READ) before loading a tab): the itemtype right and the item scope
+if ($users_id <= 0 || !$user->can($users_id, READ)) {
    throw new NotFoundHttpException();
 }
 
@@ -52,7 +52,7 @@ if (!is_array($filters)) {
 $sql_filters = PluginAccesstransparencyLog::convertFiltersValuesToSqlCriteria($filters);
 
 $rows = [];
-foreach (PluginAccesstransparencyLog::getHistoryData($user, 0, 0, $sql_filters) as $log) {
+foreach (PluginAccesstransparencyLog::getHistoryData($user, 0, PluginAccesstransparencyCsvexport::MAX_ROWS, $sql_filters) as $log) {
    $rows[] = [
       $log['id'],
       $log['source_type'],
@@ -60,9 +60,12 @@ foreach (PluginAccesstransparencyLog::getHistoryData($user, 0, 0, $sql_filters) 
       $log['message'],
    ];
 }
+if (countElementsInTable(PluginAccesstransparencyLog::getTable(), ['users_id' => $users_id] + $sql_filters) > PluginAccesstransparencyCsvexport::MAX_ROWS) {
+   $rows[] = PluginAccesstransparencyCsvexport::getTruncatedRow(4);
+}
 
-\Glpi\Csv\CsvResponse::output(new PluginAccesstransparencyCsvexport(
+return (new PluginAccesstransparencyCsvexport(
    sprintf('accesstransparency-user-%d.csv', $users_id),
    [__('ID'), __('Source'), _n('Date', 'Dates', 1), __('Message')],
    $rows
-));
+))->toResponse();

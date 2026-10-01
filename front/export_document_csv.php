@@ -40,8 +40,8 @@ Session::checkRight(PluginAccesstransparencyDocument::$rightname, READ);
 
 $doc = new Document();
 $documents_id = (int)($_GET['id'] ?? 0);
-// Same checks as the Document tab: the document must exist and be visible to the viewer
-if ($documents_id <= 0 || !$doc->getFromDB($documents_id) || !$doc->canViewItem()) {
+// Same checks as the Document tab (core checks can(READ) before loading a tab): the itemtype right and the item scope
+if ($documents_id <= 0 || !$doc->can($documents_id, READ)) {
    throw new NotFoundHttpException();
 }
 
@@ -53,7 +53,7 @@ $filters['source'] = [PluginAccesstransparencyLog::DOCUMENT];
 $sql_filters = PluginAccesstransparencyLog::convertFiltersValuesToSqlCriteria($filters);
 
 $rows = [];
-foreach (PluginAccesstransparencyDocument::getHistoryData($doc, 0, 0, $sql_filters) as $log) {
+foreach (PluginAccesstransparencyDocument::getHistoryData($doc, 0, PluginAccesstransparencyCsvexport::MAX_ROWS, $sql_filters) as $log) {
    $rows[] = [
       $log['id'],
       $log['source_date'],
@@ -61,9 +61,13 @@ foreach (PluginAccesstransparencyDocument::getHistoryData($doc, 0, 0, $sql_filte
       $log['opened_from'] !== null ? sprintf(__('%1$s: %2$s'), $log['opened_from']['label'], $log['opened_from']['name']) : '',
    ];
 }
+$doc_criteria = ['items_id' => $documents_id, 'itemtype' => Document::getType()] + $sql_filters;
+if (countElementsInTable(PluginAccesstransparencyLog::getTable(), $doc_criteria) > PluginAccesstransparencyCsvexport::MAX_ROWS) {
+   $rows[] = PluginAccesstransparencyCsvexport::getTruncatedRow(4);
+}
 
-\Glpi\Csv\CsvResponse::output(new PluginAccesstransparencyCsvexport(
+return (new PluginAccesstransparencyCsvexport(
    sprintf('accesstransparency-document-%d.csv', $documents_id),
    [__('ID'), _n('Date', 'Dates', 1), User::getTypeName(1), __('Opened from', 'accesstransparency')],
    $rows
-));
+))->toResponse();

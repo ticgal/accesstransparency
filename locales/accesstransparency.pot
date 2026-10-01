@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-01 13:24+0200\n"
+"POT-Creation-Date: 2026-10-01 14:04+0200\n"
 "PO-Revision-Date: 2026-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,8 +18,13 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: front/export_document_csv.php:67 entrada estándar:47
+#: front/export_document_csv.php:71 entrada estándar:47
 msgid "Opened from"
+msgstr ""
+
+#: inc/csvexport.class.php:93
+#, php-format
+msgid "Export limited to the %d most recent entries"
 msgstr ""
 
 #: inc/document.class.php:39 inc/profile.class.php:88
@@ -49,38 +54,38 @@ msgstr ""
 msgid "Limit number of logs to retrieve"
 msgstr ""
 
-#: inc/log.class.php:298
+#: inc/log.class.php:295
 msgid "Log entry"
 msgstr ""
 
-#: inc/log.class.php:299
+#: inc/log.class.php:296
 msgid "Event"
 msgstr ""
 
-#: inc/log.class.php:300
+#: inc/log.class.php:297
 msgid "Document access"
 msgstr ""
 
-#: inc/log.class.php:415
+#: inc/log.class.php:412
 msgid "Item not available or not visible to you"
 msgstr ""
 
-#: inc/log.class.php:439
+#: inc/log.class.php:436
 #, php-format
 msgid "%s event: %s"
 msgstr ""
 
-#: inc/log.class.php:446
+#: inc/log.class.php:443
 #, php-format
 msgid "Accessed document #%d"
 msgstr ""
 
-#: inc/log.class.php:451
+#: inc/log.class.php:448
 #, php-format
 msgid "(opened from %s)"
 msgstr ""
 
-#: inc/log.class.php:563
+#: inc/log.class.php:566
 #, php-format
 msgid "Unknown itemtype: %s"
 msgstr ""

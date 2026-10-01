@@ -31,12 +31,20 @@
 
 
 use Glpi\Csv\ExportToCsvInterface;
+use League\Csv\Writer;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * CSV export of the rows displayed on the User and Document tabs.
  */
 class PluginAccesstransparencyCsvexport implements ExportToCsvInterface
 {
+   /**
+    * Maximum number of rows exported at once (each row may need several queries to be built)
+    */
+   public const MAX_ROWS = 10000;
+
    /**
     * @param string $filename
     * @param string[] $header
@@ -68,10 +76,47 @@ class PluginAccesstransparencyCsvexport implements ExportToCsvInterface
    }
 
    /**
+    * Build the CSV as a response, to be returned by the legacy front script.
+    *
+    * Glpi\Csv\CsvResponse::output() sends the headers and flushes the output itself,
+    * which GLPI 11 reports as unexpected output of a legacy script.
+    */
+   public function toResponse(): Response
+   {
+      // Same settings as Glpi\Csv\CsvResponse::output()
+      $csv = Writer::createFromString('');
+      $csv->setEscape('');
+      $csv->setDelimiter($_SESSION["glpicsv_delimiter"] ?? ";");
+      $csv->insertOne($this->getFileHeader());
+      $csv->insertAll($this->getFileContent());
+
+      return new Response($csv->toString(), 200, [
+         'Content-Type'        => 'text/csv; charset=UTF-8',
+         'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, (string)$this->getFileName()),
+      ]);
+   }
+
+   /**
     * Convert the HTML of a displayed value (escaped text, links, <del>/<ins>) back to plain text.
     */
    public static function toText($value): string
    {
-      return trim(html_entity_decode(strip_tags((string)$value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+      $text = trim(html_entity_decode(strip_tags((string)$value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+      // Values such as user names are user-controlled: never let a spreadsheet run them as formulas
+      return preg_match('/^[=+\-@\t\r]/', $text) ? "'" . $text : $text;
+   }
+
+   /**
+    * Row appended to an export truncated to MAX_ROWS.
+    *
+    * @return string[]
+    */
+   public static function getTruncatedRow(int $columns): array
+   {
+      return array_pad(
+         [sprintf(__('Export limited to the %d most recent entries', 'accesstransparency'), self::MAX_ROWS)],
+         $columns,
+         ''
+      );
    }
 }

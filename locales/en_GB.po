@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: glpi 11.back\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-01 13:24+0200\n"
-"PO-Revision-Date: 2026-10-01 13:24+0200\n"
+"POT-Creation-Date: 2026-10-01 14:04+0200\n"
+"PO-Revision-Date: 2026-10-01 14:04+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: en_GB\n"
@@ -17,9 +17,14 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: front/export_document_csv.php:67 entrada estándar:47
+#: front/export_document_csv.php:71 entrada estándar:47
 msgid "Opened from"
 msgstr "Opened from"
+
+#: inc/csvexport.class.php:93
+#, php-format
+msgid "Export limited to the %d most recent entries"
+msgstr "Export limited to the %d most recent entries"
 
 #: inc/document.class.php:39 inc/profile.class.php:88
 msgid "Access Transparency"
@@ -48,38 +53,38 @@ msgstr "Get logs"
 msgid "Limit number of logs to retrieve"
 msgstr "Limit number of logs to retrieve"
 
-#: inc/log.class.php:298
+#: inc/log.class.php:295
 msgid "Log entry"
 msgstr "Log entry"
 
-#: inc/log.class.php:299
+#: inc/log.class.php:296
 msgid "Event"
 msgstr "Event"
 
-#: inc/log.class.php:300
+#: inc/log.class.php:297
 msgid "Document access"
 msgstr "Document access"
 
-#: inc/log.class.php:415
+#: inc/log.class.php:412
 msgid "Item not available or not visible to you"
 msgstr "Item not available or not visible to you"
 
-#: inc/log.class.php:439
+#: inc/log.class.php:436
 #, php-format
 msgid "%s event: %s"
 msgstr "%s event: %s"
 
-#: inc/log.class.php:446
+#: inc/log.class.php:443
 #, php-format
 msgid "Accessed document #%d"
 msgstr "Accessed document #%d"
 
-#: inc/log.class.php:451
+#: inc/log.class.php:448
 #, php-format
 msgid "(opened from %s)"
 msgstr "(opened from %s)"
 
-#: inc/log.class.php:563
+#: inc/log.class.php:566
 #, php-format
 msgid "Unknown itemtype: %s"
 msgstr "Unknown itemtype: %s"
