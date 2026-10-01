@@ -79,21 +79,32 @@ class PluginAccesstransparencyDocument extends CommonDBTM
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string|array
    {
-      if ($item::getType() === Document::getType() && Session::haveRight(self::$rightname, READ)) {
-         $nb = 0;
-         $nb = countElementsInTable(PluginAccesstransparencyLog::getTable(), ['itemtype' => $item::getType(), 'items_id' => $item->getID(), 'source_type' => PluginAccesstransparencyLog::DOCUMENT]);
-         return self::createTabEntry(self::getTypeName(1), $nb);
+      if (!self::canViewForDocument($item)) {
+         return '';
       }
-      return '';
+
+      $nb = 0;
+      if ($_SESSION['glpishow_count_on_tabs']) {
+         $nb = countElementsInTable(PluginAccesstransparencyLog::getTable(), ['itemtype' => $item::getType(), 'items_id' => $item->getID(), 'source_type' => PluginAccesstransparencyLog::DOCUMENT]);
+      }
+      return self::createTabEntry(self::getTypeName(1), $nb);
    }
 
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0)
    {
-      if ($item::getType() === Document::getType()) {
+      // The tab content can be requested directly, so the rights are checked again here
+      if (self::canViewForDocument($item)) {
          self::displayUserInteractionsForDocument($item);
       }
 
       return true;
+   }
+
+   private static function canViewForDocument(CommonGLPI $item): bool
+   {
+      return $item instanceof Document
+         && Session::haveRight(self::$rightname, READ)
+         && $item->canViewItem();
    }
 
    public static function displayUserInteractionsForDocument(Document $doc)

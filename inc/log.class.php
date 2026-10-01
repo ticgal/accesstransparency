@@ -256,7 +256,7 @@ class PluginAccesstransparencyLog extends CommonDBTM
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0)
    {
-      if ($item::getType() != User::getType() && !Session::haveRight(self::$rightname, READ)) {
+      if ($item::getType() != User::getType() || !Session::haveRight(self::$rightname, READ)) {
          return '';
       }
 
@@ -346,31 +346,40 @@ class PluginAccesstransparencyLog extends CommonDBTM
          $tmp['source_date'] = $data['source_date'];
          $tmp['user_name'] = User::getNameForLog($data['users_id']);
 
+         // The rows describe items from any entity: never show details of an item the viewer can't read.
+         // The row itself is kept (with a placeholder) so the pager counts stay consistent.
+         if (!self::canViewRowItem($data)) {
+            $tmp['message'] = __s('Item not available or not visible to you', 'accesstransparency');
+            $logs[] = $tmp;
+            continue;
+         }
+
+         // The message is rendered with |raw: every value coming from the database must be escaped here.
          switch ($data['source_type']) {
             case self::LOG:
                $logmessage = self::getLogMessage($data);
                $tmp['message'] = sprintf(
-                  __('%s #%d: %s', 'accesstransparency'),
-                  $data['itemtype'],
+                  __s('%s #%d: %s', 'accesstransparency'),
+                  htmlescape($data['itemtype']),
                   $data['items_id'],
                   $logmessage
                );
                break;
             case self::EVENT:
                $tmp['message'] = sprintf(
-                  __('%s event: %s', 'accesstransparency'),
-                  $data['service'],
-                  $data['message']
+                  __s('%s event: %s', 'accesstransparency'),
+                  htmlescape($data['service']),
+                  htmlescape($data['message'])
                );
                break;
             case self::DOCUMENT:
                $tmp['message'] = sprintf(
-                  __('Accessed document #%d', 'accesstransparency'),
+                  __s('Accessed document #%d', 'accesstransparency'),
                   $data['items_id']
                );
                break;
             default:
-               $tmp['message'] = $data['message'] ?? '';
+               $tmp['message'] = htmlescape($data['message'] ?? '');
          }
 
          $logs[] = $tmp;
@@ -379,12 +388,77 @@ class PluginAccesstransparencyLog extends CommonDBTM
       return $logs;
    }
 
+   /**
+    * Check that the current user can read the item a stored row refers to,
+    * including its entity (can() checks both the itemtype right and the item scope).
+    */
+   public static function canViewRowItem(array $data): bool
+   {
+      switch ($data['source_type']) {
+         case self::LOG:
+         case self::DOCUMENT:
+            $itemtype = (string)($data['itemtype'] ?? '');
+            $items_id = (int)($data['items_id'] ?? 0);
+            break;
+         case self::EVENT:
+            // `field` holds the itemtype resolved from the glpi_events type, stored since 1.3.0.
+            // Events with no itemtype ("system", "dropdown"...) have no item to check.
+            $itemtype = (string)($data['field'] ?? '');
+            $items_id = (int)($data['items_id'] ?? 0);
+            if ($itemtype === '') {
+               return true;
+            }
+            break;
+         default:
+            return true;
+      }
+
+      if ($itemtype === '' || !is_a($itemtype, CommonDBTM::class, true)) {
+         // Unknown or removed itemtype: nothing can be checked, nor displayed reliably
+         return $data['source_type'] == self::EVENT;
+      }
+
+      if ($items_id <= 0) {
+         return $itemtype::canView();
+      }
+
+      $item = getItemForItemtype($itemtype);
+      return $item !== false && $item->can($items_id, READ);
+   }
+
+   /**
+    * Resolve the `type` of a glpi_events row (e.g. "ticket", "users") to an itemtype,
+    * the same way core Glpi\Event does to link events to their item.
+    */
+   public static function resolveEventItemtype(string $type): ?string
+   {
+      static $mapping = [];
+
+      if ($type === '') {
+         return null;
+      }
+      if (array_key_exists($type, $mapping)) {
+         return $mapping[$type];
+      }
+
+      $dbu = new DbUtils();
+      $mapping[$type] = null;
+      foreach ([$type, $dbu->fixItemtypeCase($type), $dbu->fixItemtypeCase($dbu->getSingular($type))] as $candidate) {
+         if (is_a($candidate, CommonDBTM::class, true)) {
+            $mapping[$type] = $candidate;
+            break;
+         }
+      }
+
+      return $mapping[$type];
+   }
+
    public static function getLogMessage(array $data): string
    {
       $DBread = DBConnection::getReadConnection();
 
       if (!class_exists($data["itemtype"])) {
-         return sprintf(__('Unknown itemtype: %s', 'accesstransparency'), $data["itemtype"]);
+         return sprintf(__s('Unknown itemtype: %s', 'accesstransparency'), htmlescape($data["itemtype"]));
       }
 
       $SEARCHOPTION = SearchOption::getOptionsForItemtype($data["itemtype"]);
