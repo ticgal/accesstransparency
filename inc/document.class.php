@@ -43,6 +43,36 @@ class PluginAccesstransparencyDocument extends CommonDBTM
         return 'ti ti-window';
     }
 
+    /** Valid user id that no user has: filtering by it matches no row */
+    private const NO_USER_ID = 2147483647;
+
+    /**
+     * Can the current user read this user (entity scope included)?
+     */
+    private static function canSeeUser(int $users_id): bool
+    {
+        static $cache = [];
+
+        return $cache[$users_id] ??= $users_id > 0 && (new User())->can($users_id, READ);
+    }
+
+    /**
+     * Filters of the tab and the CSV: the user filter can only select users the viewer can read, otherwise
+     * filtering by a hidden user would tell whether they opened the document.
+     *
+     * @param array $filters already normalized by PluginAccesstransparencyLog::normalizeFilters()
+     */
+    public static function restrictFiltersToVisibleUsers(array $filters): array
+    {
+        if (isset($filters['users_names'])) {
+            $visible = array_values(array_filter($filters['users_names'], static fn($id) => self::canSeeUser((int) $id)));
+            // No visible user left: match nothing (an empty list would mean "no filter", and 0 is dropped as invalid)
+            $filters['users_names'] = $visible !== [] ? $visible : [self::NO_USER_ID];
+        }
+
+        return $filters;
+    }
+
     public static function getDistinctUserNamesValuesInItemLog(CommonDBTM $item): array
     {
         /** @var \DBmysql $DB */
@@ -67,6 +97,10 @@ class PluginAccesstransparencyDocument extends CommonDBTM
         $values = [];
         foreach ($iterator as $data) {
             if (empty($data['users_id'])) {
+                continue;
+            }
+            // The users of other entities are not listed: they are not selectable as a filter either
+            if (!self::canSeeUser((int) $data['users_id'])) {
                 continue;
             }
             $values[$data['users_id']] = User::getNameForLog($data['users_id']);
@@ -113,7 +147,7 @@ class PluginAccesstransparencyDocument extends CommonDBTM
         $document_id = intval($doc->getID());
 
         $start       = max(0, (int) ($_GET["start"] ?? 0));
-        $filters     = PluginAccesstransparencyLog::normalizeFilters($_GET['filters'] ?? []);
+        $filters     = self::restrictFiltersToVisibleUsers(PluginAccesstransparencyLog::normalizeFilters($_GET['filters'] ?? []));
         $is_filtered = count($filters) > 0;
         $filters['source'] = [PluginAccesstransparencyLog::DOCUMENT];
         $sql_filters = PluginAccesstransparencyLog::convertFiltersValuesToSqlCriteria($filters);
@@ -168,8 +202,12 @@ class PluginAccesstransparencyDocument extends CommonDBTM
 
             $tmp['id'] = $data['id'];
             $tmp['source_date'] = $data['source_date'];
-            $tmp['users_id'] = (int) $data['users_id'];
-            $tmp['user_name'] = User::getNameForLog($data['users_id']);
+            // A user of another entity opened the document: not shown to a viewer who can't read them
+            $can_see_user = self::canSeeUser((int) $data['users_id']);
+            $tmp['users_id'] = $can_see_user ? (int) $data['users_id'] : 0;
+            $tmp['user_name'] = $can_see_user
+                ? User::getNameForLog($data['users_id'])
+                : __s('Item not available or not visible to you', 'accesstransparency');
             $tmp['opened_from'] = PluginAccesstransparencyLog::resolveSourceItem(
                 $data['source_itemtype'] ?? null,
                 (int) ($data['source_items_id'] ?? 0),

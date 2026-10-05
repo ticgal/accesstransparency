@@ -31,7 +31,7 @@
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_ACCESSTRANSPARENCY_VERSION', '1.3.0-beta.2');
+define('PLUGIN_ACCESSTRANSPARENCY_VERSION', '1.3.0-beta.3');
 define('PLUGIN_ACCESSTRANSPARENCY_MIN_GLPI', '11.0');
 define('PLUGIN_ACCESSTRANSPARENCY_MAX_GLPI', '11.9');
 
@@ -41,19 +41,19 @@ define('PLUGIN_ACCESSTRANSPARENCY_MAX_GLPI', '11.9');
  */
 function plugin_version_accesstransparency(): array
 {
-   return [
-      'name'          => 'Access Transparency',
-      'version'       => PLUGIN_ACCESSTRANSPARENCY_VERSION,
-      'author'        => '<a href="https://tic.gal">TICGAL</a>',
-      'homepage'      => 'https://tic.gal',
-      'license'       => 'AGPLv3+',
-      'requirements'  => [
-         'glpi' => [
-            'min' => PLUGIN_ACCESSTRANSPARENCY_MIN_GLPI,
-            'max' => PLUGIN_ACCESSTRANSPARENCY_MAX_GLPI,
-         ],
-      ],
-   ];
+    return [
+        'name'          => 'Access Transparency',
+        'version'       => PLUGIN_ACCESSTRANSPARENCY_VERSION,
+        'author'        => '<a href="https://tic.gal">TICGAL</a>',
+        'homepage'      => 'https://tic.gal',
+        'license'       => 'AGPLv3+',
+        'requirements'  => [
+            'glpi' => [
+                'min' => PLUGIN_ACCESSTRANSPARENCY_MIN_GLPI,
+                'max' => PLUGIN_ACCESSTRANSPARENCY_MAX_GLPI,
+            ],
+        ],
+    ];
 }
 
 /**
@@ -62,40 +62,40 @@ function plugin_version_accesstransparency(): array
  */
 function plugin_init_accesstransparency(): void
 {
-   /** @var array $PLUGIN_HOOKS */
-   global $PLUGIN_HOOKS;
+    /** @var array $PLUGIN_HOOKS */
+    global $PLUGIN_HOOKS;
 
-   Plugin::registerClass(PluginAccesstransparencyConfig::class, ['addtabon' => Config::class]);
-   Plugin::registerClass(PluginAccesstransparencyProfile::class, ['addtabon' => Profile::class]);
-   Plugin::registerClass(PluginAccesstransparencyLog::class, ['addtabon' => User::class]);
-   Plugin::registerClass(PluginAccesstransparencyDocument::class, ['addtabon' => Document::class]);
+    Plugin::registerClass(PluginAccesstransparencyConfig::class, ['addtabon' => Config::class]);
+    Plugin::registerClass(PluginAccesstransparencyProfile::class, ['addtabon' => Profile::class]);
+    Plugin::registerClass(PluginAccesstransparencyLog::class, ['addtabon' => User::class]);
+    Plugin::registerClass(PluginAccesstransparencyDocument::class, ['addtabon' => Document::class]);
 
-   // Document downloads are tracked server-side (see hook.php)
-   $PLUGIN_HOOKS[Hooks::POST_INIT]['accesstransparency'] = 'plugin_accesstransparency_track_document_download';
+    // Document downloads are tracked server-side (see hook.php)
+    $PLUGIN_HOOKS[Hooks::POST_INIT]['accesstransparency'] = 'plugin_accesstransparency_track_document_download';
 
-   $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['accesstransparency'] = 'front/config.form.php';
+    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['accesstransparency'] = 'front/config.form.php';
 
-   CronTask::register(
-      'PluginAccesstransparencyConfig',
-      'PurgeAccessTransparencyLogs',
-      HOUR_TIMESTAMP,
-      [
-         'state' => 1,
-         'mode' => CronTask::MODE_EXTERNAL,
-         'hourmin' => 0,
-         'hourmax' => 24,
-      ],
-   );
+    CronTask::register(
+        'PluginAccesstransparencyConfig',
+        'PurgeAccessTransparencyLogs',
+        HOUR_TIMESTAMP,
+        [
+            'state' => 1,
+            'mode' => CronTask::MODE_EXTERNAL,
+            'hourmin' => 0,
+            'hourmax' => 24,
+        ],
+    );
 
-   CronTask::register(
-      'PluginAccesstransparencyLog',
-      'PluginAccesstransparencyGetLogs',
-      HOUR_TIMESTAMP,
-      [
-         'state' => 1,
-         'mode' => CronTask::MODE_EXTERNAL,
-         'hourmin' => 0,
-         'hourmax' => 24,
-      ],
-   );
+    CronTask::register(
+        'PluginAccesstransparencyLog',
+        'PluginAccesstransparencyGetLogs',
+        HOUR_TIMESTAMP,
+        [
+            'state' => 1,
+            'mode' => CronTask::MODE_EXTERNAL,
+            'hourmin' => 0,
+            'hourmax' => 24,
+        ],
+    );
 }

@@ -44,7 +44,7 @@ if ($documents_id <= 0 || !$doc->can($documents_id, READ)) {
     throw new NotFoundHttpException();
 }
 
-$filters = PluginAccesstransparencyLog::normalizeFilters($_GET['filters'] ?? []);
+$filters = PluginAccesstransparencyDocument::restrictFiltersToVisibleUsers(PluginAccesstransparencyLog::normalizeFilters($_GET['filters'] ?? []));
 $filters['source'] = [PluginAccesstransparencyLog::DOCUMENT];
 $sql_filters = PluginAccesstransparencyLog::convertFiltersValuesToSqlCriteria($filters);
 

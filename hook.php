@@ -191,11 +191,21 @@ function plugin_accesstransparency_record_document_response(\Symfony\Component\H
             return;
         }
 
-        $source = plugin_accesstransparency_get_document_source(
-            $doc,
-            $request->query->get('itemtype'),
-            $request->query->get('items_id'),
-        );
+        // The Documents tab of an item links with itemtype/items_id, the ITIL timeline with tickets_id,
+        // changes_id or problems_id (the legacy parameters are only read when itemtype is absent, like the core does)
+        $itemtype = $request->query->get('itemtype');
+        $items_id = $request->query->get('items_id');
+        if ($itemtype === null) {
+            foreach (['tickets_id' => Ticket::class, 'changes_id' => Change::class, 'problems_id' => Problem::class] as $param => $class) {
+                if ($request->query->has($param)) {
+                    $itemtype = $class;
+                    $items_id = $request->query->get($param);
+                    break;
+                }
+            }
+        }
+
+        $source = plugin_accesstransparency_get_document_source($doc, $itemtype, $items_id);
 
         $log = new PluginAccesstransparencyLog();
         $log->add([
@@ -215,8 +225,8 @@ function plugin_accesstransparency_record_document_response(\Symfony\Component\H
 }
 
 /**
- * Item a document was opened from, from the itemtype/items_id that Document::getDownloadLink($linked_item)
- * appends to the link (ticket timeline, change documents...).
+ * Item a document was opened from, from the parameters of the download link: itemtype/items_id
+ * (Document::getDownloadLink($linked_item), Documents tab) or tickets_id/changes_id/problems_id (ITIL timeline).
  * It is request input: only kept when the item exists, the user can read it and the document is linked to it
  * (the same checks as Document::canViewFile() for the item it is opened from).
  *

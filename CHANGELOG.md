@@ -18,6 +18,7 @@
 - Store and backfill the itemtype of events so their item visibility is checked; hide events whose item is unknown
 - Events of unresolvable or removed itemtypes (e.g. of a disabled plugin) are hidden; only core "system" events are global
 - Document accesses are recorded only when the file is actually served (exact script path, GET, successful response); the item it was opened from is kept only if it exists, the user can read it and the document is linked to it
+- Document tab, its user filter and its CSV no longer show users of other entities the viewer can't read
 - Close generic access to the log records (legacy REST API, search engine): they are only readable through the plugin tabs
 - CSV exports require the same User/Document read right as the tabs
 - Neutralise spreadsheet formulas in CSV exports and limit exports to 10,000 rows
@@ -32,6 +33,7 @@
 - Faster User tab and purge (composite index, single DELETE)
 - User tab no longer crashes when a record refers to an item of a disabled plugin (e.g. a Charges rule criterion)
 - Event itemtypes are stored with their declared class name case
+- Downloads from the ticket, change and problem timelines now keep the item they were opened from (they link with tickets_id/changes_id/problems_id)
 - Log ingestion commits each batch of rows with its cursor: an interrupted run no longer loses nor duplicates rows
 - Migration of the document accesses of previous versions is atomic and can be retried without duplicates
 - Tab and CSV filters only accept known values (malformed filters no longer cause errors)
