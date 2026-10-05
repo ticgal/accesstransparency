@@ -31,100 +31,100 @@
 
 class PluginAccesstransparencyProfile extends CommonDBTM
 {
-   public static $rightname = 'profile';
+    public static $rightname = 'profile';
 
-   /**
-    * {@inheritDoc}
-    */
-   public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string|array
-   {
-      switch ($item->getType()) {
-         case Profile::class:
-            return self::createTabEntry('Access Transparency');
-      }
-      return '';
-   }
+    /**
+     * {@inheritDoc}
+     */
+    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string|array
+    {
+        switch ($item->getType()) {
+            case Profile::class:
+                return self::createTabEntry('Access Transparency');
+        }
+        return '';
+    }
 
-   public static function getIcon(): string
-   {
-      return 'ti ti-window';
-   }
+    public static function getIcon(): string
+    {
+        return 'ti ti-window';
+    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
-   {
-      switch ($item->getType()) {
-         case Profile::class:
-            /** @var Profile $item */
-            $profile = new self();
-            return $profile->displayProfileForm($item);
-      }
-      return false;
-   }
+    /**
+     * {@inheritDoc}
+     */
+    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
+    {
+        switch ($item->getType()) {
+            case Profile::class:
+                /** @var Profile $item */
+                $profile = new self();
+                return $profile->displayProfileForm($item);
+        }
+        return false;
+    }
 
-   /**
-    * Display the profile form for AccessTransparency rights
-    * @param  Profile $profile
-    * @return bool
-    */
-   public function displayProfileForm(Profile $profile): bool
-   {
-      if (!Session::haveRight(self::$rightname, READ)) {
-         return false;
-      }
+    /**
+     * Display the profile form for AccessTransparency rights
+     * @param  Profile $profile
+     * @return bool
+     */
+    public function displayProfileForm(Profile $profile): bool
+    {
+        if (!Session::haveRight(self::$rightname, READ)) {
+            return false;
+        }
 
-      $can_edit = Session::haveRight(self::$rightname, UPDATE);
+        $can_edit = Session::haveRight(self::$rightname, UPDATE);
 
-      echo "<div class='spaced'>";
-      if ($can_edit) {
-         echo "<form method='post' action='" . htmlspecialchars($profile::getFormURL()) . "'>";
-      }
+        echo "<div class='spaced'>";
+        if ($can_edit) {
+            echo "<form method='post' action='" . htmlspecialchars($profile::getFormURL()) . "'>";
+        }
 
-      $rights = self::getGeneralRights();
-      $matrix_options = [
-         'canedit' => $can_edit,
-         'title'   => __('Access Transparency', 'accesstransparency'),
-      ];
+        $rights = self::getGeneralRights();
+        $matrix_options = [
+            'canedit' => $can_edit,
+            'title'   => __('Access Transparency', 'accesstransparency'),
+        ];
 
-      $profile->displayRightsChoiceMatrix($rights, $matrix_options);
-      if ($can_edit) {
-         echo "<div class='text-center'>";
-         echo Html::hidden('id', ['value' => $profile->getID()]);
-         echo Html::submit(_sx('button', 'Save'), ['name' => 'update']);
-         echo "</div>\n";
-         Html::closeForm();
-      }
-      echo '</div>';
-      return true;
-   }
+        $profile->displayRightsChoiceMatrix($rights, $matrix_options);
+        if ($can_edit) {
+            echo "<div class='text-center'>";
+            echo Html::hidden('id', ['value' => $profile->getID()]);
+            echo Html::submit(_sx('button', 'Save'), ['name' => 'update']);
+            echo "</div>\n";
+            Html::closeForm();
+        }
+        echo '</div>';
+        return true;
+    }
 
-   /**
-    * Get general rights array
-    * @return array
-    */
-   public static function getGeneralRights(): array
-   {
-      return [
-         [
-            'rights' => [READ => __('Read')],
-            'label'  => __('Historical'),
-            'field'  => 'plugin_accesstransparency_view',
-         ],
-      ];
-   }
+    /**
+     * Get general rights array
+     * @return array
+     */
+    public static function getGeneralRights(): array
+    {
+        return [
+            [
+                'rights' => [READ => __('Read')],
+                'label'  => __('Historical'),
+                'field'  => 'plugin_accesstransparency_view',
+            ],
+        ];
+    }
 
-   /**
-    * Remove profile rights on uninstall
-    * @param Migration $migration
-    * @return void
-    */
-   public static function uninstall(Migration $migration): void
-   {
-      $migration->displayMessage("Deleting accesstransparency profile rights");
-      foreach (self::getGeneralRights() as $data) {
-         ProfileRight::deleteProfileRights([$data['field']]);
-      }
-   }
+    /**
+     * Remove profile rights on uninstall
+     * @param Migration $migration
+     * @return void
+     */
+    public static function uninstall(Migration $migration): void
+    {
+        $migration->displayMessage("Deleting accesstransparency profile rights");
+        foreach (self::getGeneralRights() as $data) {
+            ProfileRight::deleteProfileRights([$data['field']]);
+        }
+    }
 }

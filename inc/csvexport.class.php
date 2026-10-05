@@ -29,7 +29,6 @@
  * -------------------------------------------------------------------------
  */
 
-
 use Glpi\Csv\ExportToCsvInterface;
 use League\Csv\Writer;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -40,83 +39,89 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class PluginAccesstransparencyCsvexport implements ExportToCsvInterface
 {
-   /**
-    * Maximum number of rows exported at once (each row may need several queries to be built)
-    */
-   public const MAX_ROWS = 10000;
+    /**
+     * Maximum number of rows exported at once (each row may need several queries to be built)
+     */
+    public const MAX_ROWS = 10000;
 
-   /**
-    * @param string $filename
-    * @param string[] $header
-    * @param array<array<string|int|null>> $rows Values may contain the HTML built for the tabs
-    */
-   public function __construct(
-      private string $filename,
-      private array $header,
-      private array $rows
-   ) {
-   }
+    private string $filename;
+    /** @var string[] */
+    private array $header;
+    /** @var array<array<string|int|null>> */
+    private array $rows;
 
-   public function getFileName(): ?string
-   {
-      return $this->filename;
-   }
+    /**
+     * @param string $filename
+     * @param string[] $header
+     * @param array<array<string|int|null>> $rows Values may contain the HTML built for the tabs
+     */
+    public function __construct(string $filename, array $header, array $rows)
+    {
+        $this->filename = $filename;
+        $this->header   = $header;
+        $this->rows     = $rows;
+    }
 
-   public function getFileHeader(): array
-   {
-      return $this->header;
-   }
+    public function getFileName(): ?string
+    {
+        return $this->filename;
+    }
 
-   public function getFileContent(): array
-   {
-      return array_map(
-         static fn(array $row) => array_map([self::class, 'toText'], $row),
-         $this->rows
-      );
-   }
+    public function getFileHeader(): array
+    {
+        return $this->header;
+    }
 
-   /**
-    * Build the CSV as a response, to be returned by the legacy front script.
-    *
-    * Glpi\Csv\CsvResponse::output() sends the headers and flushes the output itself,
-    * which GLPI 11 reports as unexpected output of a legacy script.
-    */
-   public function toResponse(): Response
-   {
-      // Same settings as Glpi\Csv\CsvResponse::output()
-      $csv = Writer::createFromString('');
-      $csv->setEscape('');
-      $csv->setDelimiter($_SESSION["glpicsv_delimiter"] ?? ";");
-      $csv->insertOne($this->getFileHeader());
-      $csv->insertAll($this->getFileContent());
+    public function getFileContent(): array
+    {
+        return array_map(
+            static fn(array $row) => array_map([self::class, 'toText'], $row),
+            $this->rows,
+        );
+    }
 
-      return new Response($csv->toString(), 200, [
-         'Content-Type'        => 'text/csv; charset=UTF-8',
-         'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, (string)$this->getFileName()),
-      ]);
-   }
+    /**
+     * Build the CSV as a response, to be returned by the legacy front script.
+     *
+     * Glpi\Csv\CsvResponse::output() sends the headers and flushes the output itself,
+     * which GLPI 11 reports as unexpected output of a legacy script.
+     */
+    public function toResponse(): Response
+    {
+        // Same settings as Glpi\Csv\CsvResponse::output()
+        $csv = Writer::createFromString('');
+        $csv->setEscape('');
+        $csv->setDelimiter($_SESSION["glpicsv_delimiter"] ?? ";");
+        $csv->insertOne($this->getFileHeader());
+        $csv->insertAll($this->getFileContent());
 
-   /**
-    * Convert the HTML of a displayed value (escaped text, links, <del>/<ins>) back to plain text.
-    */
-   public static function toText($value): string
-   {
-      $text = trim(html_entity_decode(strip_tags((string)$value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-      // Values such as user names are user-controlled: never let a spreadsheet run them as formulas
-      return preg_match('/^[=+\-@\t\r]/', $text) ? "'" . $text : $text;
-   }
+        return new Response($csv->toString(), 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, (string) $this->getFileName()),
+        ]);
+    }
 
-   /**
-    * Row appended to an export truncated to MAX_ROWS.
-    *
-    * @return string[]
-    */
-   public static function getTruncatedRow(int $columns): array
-   {
-      return array_pad(
-         [sprintf(__('Export limited to the %d most recent entries', 'accesstransparency'), self::MAX_ROWS)],
-         $columns,
-         ''
-      );
-   }
+    /**
+     * Convert the HTML of a displayed value (escaped text, links, <del>/<ins>) back to plain text.
+     */
+    public static function toText($value): string
+    {
+        $text = trim(html_entity_decode(strip_tags((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        // Values such as user names are user-controlled: never let a spreadsheet run them as formulas
+        return preg_match('/^[=+\-@\t\r]/', $text) ? "'" . $text : $text;
+    }
+
+    /**
+     * Row appended to an export truncated to MAX_ROWS.
+     *
+     * @return string[]
+     */
+    public static function getTruncatedRow(int $columns): array
+    {
+        return array_pad(
+            [sprintf(__('Export limited to the %d most recent entries', 'accesstransparency'), self::MAX_ROWS)],
+            $columns,
+            '',
+        );
+    }
 }

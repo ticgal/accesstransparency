@@ -29,43 +29,39 @@
  * -------------------------------------------------------------------------
  */
 
-
 use Glpi\Exception\Http\NotFoundHttpException;
 
 if (!Plugin::isPluginActive('accesstransparency')) {
-   throw new NotFoundHttpException();
+    throw new NotFoundHttpException();
 }
 
 Session::checkRight(PluginAccesstransparencyLog::$rightname, READ);
 
 $user = new User();
-$users_id = (int)($_GET['id'] ?? 0);
+$users_id = (int) ($_GET['id'] ?? 0);
 // Same checks as the User tab (core checks can(READ) before loading a tab): the itemtype right and the item scope
 if ($users_id <= 0 || !$user->can($users_id, READ)) {
-   throw new NotFoundHttpException();
+    throw new NotFoundHttpException();
 }
 
-$filters = $_GET['filters'] ?? [];
-if (!is_array($filters)) {
-   $filters = [];
-}
+$filters = PluginAccesstransparencyLog::normalizeFilters($_GET['filters'] ?? []);
 $sql_filters = PluginAccesstransparencyLog::convertFiltersValuesToSqlCriteria($filters);
 
 $rows = [];
 foreach (PluginAccesstransparencyLog::getHistoryData($user, 0, PluginAccesstransparencyCsvexport::MAX_ROWS, $sql_filters) as $log) {
-   $rows[] = [
-      $log['id'],
-      $log['source_type'],
-      $log['source_date'],
-      $log['message'],
-   ];
+    $rows[] = [
+        $log['id'],
+        $log['source_type'],
+        $log['source_date'],
+        $log['message'],
+    ];
 }
 if (countElementsInTable(PluginAccesstransparencyLog::getTable(), ['users_id' => $users_id] + $sql_filters) > PluginAccesstransparencyCsvexport::MAX_ROWS) {
-   $rows[] = PluginAccesstransparencyCsvexport::getTruncatedRow(4);
+    $rows[] = PluginAccesstransparencyCsvexport::getTruncatedRow(4);
 }
 
 return (new PluginAccesstransparencyCsvexport(
-   sprintf('accesstransparency-user-%d.csv', $users_id),
-   [__('ID'), __('Source'), _n('Date', 'Dates', 1), __('Message')],
-   $rows
+    sprintf('accesstransparency-user-%d.csv', $users_id),
+    [__('ID'), __('Source'), _n('Date', 'Dates', 1), __('Message')],
+    $rows,
 ))->toResponse();

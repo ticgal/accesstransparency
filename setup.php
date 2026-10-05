@@ -31,7 +31,7 @@
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_ACCESSTRANSPARENCY_VERSION', '1.3.0-beta');
+define('PLUGIN_ACCESSTRANSPARENCY_VERSION', '1.3.0-beta.2');
 define('PLUGIN_ACCESSTRANSPARENCY_MIN_GLPI', '11.0');
 define('PLUGIN_ACCESSTRANSPARENCY_MAX_GLPI', '11.9');
 
@@ -83,7 +83,7 @@ function plugin_init_accesstransparency(): void
          'state' => 1,
          'mode' => CronTask::MODE_EXTERNAL,
          'hourmin' => 0,
-         'hourmax' => 24
+         'hourmax' => 24,
       ],
    );
 
@@ -95,7 +95,7 @@ function plugin_init_accesstransparency(): void
          'state' => 1,
          'mode' => CronTask::MODE_EXTERNAL,
          'hourmin' => 0,
-         'hourmax' => 24
+         'hourmax' => 24,
       ],
    );
 }

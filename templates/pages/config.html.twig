@@ -40,7 +40,7 @@
 
 	{{ inputs.hidden('id', config.fields['id']) }}
 
-	{{ fields.dropdownArrayField('log_retention_minutes', config.fields['log_retention_minutes'], logs_interval_options, __('Log retention', 'accesstransparency'), field_options)}}
+	{{ fields.dropdownArrayField('log_retention_minutes', config.fields['log_retention_minutes'], logs_interval_options, __('Log retention', 'accesstransparency'), field_options) }}
 
 	{{ fields.textField('excluded_logins', config.fields['excluded_logins'] ?? '', __('Excluded logins', 'accesstransparency'), field_options|merge({
 		'helper': __('Comma-separated logins (e.g. service or inventory accounts such as glpi-agent). Nothing is recorded for these accounts: neither their document accesses nor their history and events.', 'accesstransparency'),

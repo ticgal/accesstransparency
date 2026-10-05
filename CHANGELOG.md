@@ -16,9 +16,13 @@
 - Hide details of items the viewer cannot read (entity isolation)
 - Remove the AJAX endpoint that allowed forging document access records
 - Store and backfill the itemtype of events so their item visibility is checked; hide events whose item is unknown
+- Events of unresolvable or removed itemtypes (e.g. of a disabled plugin) are hidden; only core "system" events are global
+- Document accesses are recorded only when the file is actually served (exact script path, GET, successful response); the item it was opened from is kept only if it exists, the user can read it and the document is linked to it
+- Close generic access to the log records (legacy REST API, search engine): they are only readable through the plugin tabs
 - CSV exports require the same User/Document read right as the tabs
 - Neutralise spreadsheet formulas in CSV exports and limit exports to 10,000 rows
 - Attribute events to users only on whole-word login matches
+- Attribute history entries only to the real actor id (and the impersonated user, verified against current names): ids typed in a display name are ignored
 
 ### Bugfix
 - Log purge no longer deletes every record when the retention is not set
@@ -26,6 +30,12 @@
 - Database changes of upgrades are now applied (missing executeMigration())
 - Automatic actions are removed on uninstall
 - Faster User tab and purge (composite index, single DELETE)
+- User tab no longer crashes when a record refers to an item of a disabled plugin (e.g. a Charges rule criterion)
+- Event itemtypes are stored with their declared class name case
+- Log ingestion commits each batch of rows with its cursor: an interrupted run no longer loses nor duplicates rows
+- Migration of the document accesses of previous versions is atomic and can be retried without duplicates
+- Tab and CSV filters only accept known values (malformed filters no longer cause errors)
+- Configuration only accepts the form fields and valid retention values; ingestion cursors can't be changed from the form
 
 ## [1.2.0] - 2026-07-03
 ### Added

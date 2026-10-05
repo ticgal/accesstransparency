@@ -30,16 +30,16 @@
  */
 
 if (!Plugin::isPluginActive('accesstransparency')) {
-   throw new \Glpi\Exception\Http\NotFoundHttpException();
+    throw new \Glpi\Exception\Http\NotFoundHttpException();
 }
 
 Session::checkRight('config', UPDATE);
 
 $config = new PluginAccesstransparencyConfig();
 if (isset($_POST["update"])) {
-   $config->check($_POST['id'], UPDATE);
-   $config->update($_POST);
-   Html::back();
+    $config->check($_POST['id'], UPDATE);
+    $config->update($_POST);
+    Html::back();
 }
 
 /** @var array $CFG_GLPI */
