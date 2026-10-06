@@ -8,6 +8,7 @@
 - CSV export of the User and Document tabs, keeping the active filters
 - Impersonation, massive action and setup events in the user history
 - Migration of the document accesses of previous versions into the logs table
+- Update locales
 
 ### Security
 - Escape event messages before display (stored XSS through the failed login message)

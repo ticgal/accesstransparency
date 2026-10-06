@@ -1,97 +1,90 @@
 msgid ""
 msgstr ""
+"Project-Id-Version: Access Transparency\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 09:26+0000\n"
+"PO-Revision-Date: 2026-10-06 09:26+0000\n"
+"Language: pt_PT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Localazy (https://localazy.com)\n"
-"Project-Id-Version: Access Transparency\n"
-"Language: pt_PT\n"
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
 
-#: inc/log.class.php:436
-#, php-format
-msgid "%s event: %s"
-msgstr "%s event: %s"
+msgid "Get logs"
+msgstr "Obter registos"
 
-#: inc/document.class.php:39 inc/profile.class.php:88
-msgid "Access Transparency"
-msgstr "Acesso à Transparência"
+msgid "Limit number of logs to retrieve"
+msgstr "Limitar o número de registos a obter"
 
-#: entrada estándar:39
-msgid "Access Transparency Logs Configuration"
-msgstr "Access Transparency Logs Configuration"
+msgid "Log entry"
+msgstr "Entrada de registo"
 
-#: inc/log.class.php:443
-#, php-format
-msgid "Accessed document #%d"
-msgstr "Accessed document #%d"
-
-#: entrada estándar:46
-msgid "Comma-separated logins (e.g. service or inventory accounts such as glpi-agent). Nothing is recorded for these accounts: neither their document accesses nor their history and events."
-msgstr "Comma-separated logins (e.g. service or inventory accounts such as glpi-agent). Nothing is recorded for these accounts: neither their document accesses nor their history and events."
-
-#: inc/log.class.php:297
-msgid "Document access"
-msgstr "Document access"
-
-#: inc/log.class.php:296
 msgid "Event"
-msgstr "Event"
+msgstr "Evento"
 
-#: entrada estándar:45
-msgid "Excluded logins"
-msgstr "Excluded logins"
+msgid "Document access"
+msgstr "Acesso a documento"
 
-#: inc/csvexport.class.php:93
 #, php-format
 msgid "Export limited to the %d most recent entries"
-msgstr "Export limited to the %d most recent entries"
+msgstr "Exportação limitada às %d entradas mais recentes"
 
-#: inc/log.class.php:48
-msgid "Get logs"
-msgstr "Get logs"
+msgid "Access Transparency"
+msgstr "Access Transparency"
 
-#: inc/log.class.php:412
-msgid "Item not available or not visible to you"
-msgstr "Item not available or not visible to you"
-
-#: inc/config.class.php:106
 msgid "Keep all logs"
-msgstr "Keep all logs"
+msgstr "Manter todos os registos"
 
-#: inc/log.class.php:48
-msgid "Limit number of logs to retrieve"
-msgstr "Limit number of logs to retrieve"
-
-#: inc/log.class.php:295
-msgid "Log entry"
-msgstr "Log entry"
-
-#: entrada estándar:43
-msgid "Log retention"
-msgstr "Retenção de registos"
-
-#: front/export_document_csv.php:71 entrada estándar:47
-msgid "Opened from"
-msgstr "Opened from"
-
-#: inc/config.class.php:176
-msgid "Purge old logs"
-msgstr "Purge old logs"
-
-#: inc/log.class.php:566
-#, php-format
-msgid "Unknown itemtype: %s"
-msgstr "Unknown itemtype: %s"
-
-#: inc/log.class.php:448
-#, php-format
-msgid "(opened from %s)"
-msgstr "(opened from %s)"
-
-#: inc/config.class.php:109
 #, php-format
 msgid "Delete if older than %s month"
 msgid_plural "Delete if older than %s months"
-msgstr[0] "Delete if older than %s month"
-msgstr[1] "Delete if older than %s months"
+msgstr[0] "Eliminar se tiver mais de %s mês"
+msgstr[1] "Eliminar se tiver mais de %s meses"
+
+msgid "Purge old logs"
+msgstr "Purgar registos antigos"
+
+msgid "Opened from"
+msgstr "Aberto a partir de"
+
+msgid "Access Transparency Logs Configuration"
+msgstr "Configuração dos registos de Access Transparency"
+
+msgid "Log retention"
+msgstr "Retenção de registos"
+
+msgid "Excluded logins"
+msgstr "Logins excluídos"
+
+msgid ""
+"Comma-separated logins (e.g. service or inventory accounts such as "
+"glpi-agent). Nothing is recorded for these accounts: neither their "
+"document accesses nor their history and events."
+msgstr ""
+"Logins separados por vírgulas (p. ex., contas de serviço ou de "
+"inventário como glpi-agent). Não é registado nada destas contas: nem "
+"os seus acessos a documentos nem o seu histórico e eventos."
+
+msgid "Item not available or not visible to you"
+msgstr "Elemento não disponível ou que não pode ver"
+
+#, php-format
+msgid "%s event: %s"
+msgstr "Evento %s: %s"
+
+#, php-format
+msgid "Accessed document #%d"
+msgstr "Acesso ao documento #%d"
+
+#, php-format
+msgid "Unknown itemtype: %s"
+msgstr "Tipo de elemento desconhecido: %s"
+
+#, php-format
+msgid "(opened from %s)"
+msgstr "(aberto a partir de %s)"
+
+msgid "Invalid log retention"
+msgstr "Retenção de registos inválida"
+
