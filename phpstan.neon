@@ -6,7 +6,6 @@ parameters:
         - ../../stubs/glpi_constants.php
         - ../../vendor/autoload.php
     paths:
-        - ajax
         - front
         - inc
         - hook.php

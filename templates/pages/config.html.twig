@@ -1,93 +1,48 @@
 {#
- # -------------------------------------------------------------------------
- # AccessTransparency plugin for GLPI
- # Copyright (C) 2025 by the TICGAL Team.
- # https://www.tic.gal
- # -------------------------------------------------------------------------
- # LICENSE
- # This file is part of the AccessTransparency plugin.
- # AccessTransparency plugin is free software; you can redistribute it and/or modify
- # it under the terms of the GNU General Public License as published by
- # the Free Software Foundation; either version 3 of the License, or
- # (at your option) any later version.
- # AccessTransparency plugin is distributed in the hope that it will be useful,
- # but WITHOUT ANY WARRANTY; without even the implied warranty of
- # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- # GNU General Public License for more details.
- # You should have received a copy of the GNU General Public License
- # along with AccessTransparency. If not, see <http://www.gnu.org/licenses/>.
- # -------------------------------------------------------------------------
- # @package   accesstransparency
- # @author    the TICGAL team
- # @copyright Copyright (c) 2025 TICGAL team
- # @license   AGPL License 3.0 or (at your option) any later version
- #            http://www.gnu.org/licenses/agpl-3.0-standalone.html
- # @link      https://www.tic.gal
- # @since     2025
- # -------------------------------------------------------------------------
- #}
+# -------------------------------------------------------------------------
+# AccessTransparency plugin for GLPI
+# Copyright (C) 2026 by the TICGAL Team.
+# https://www.tic.gal
+# -------------------------------------------------------------------------
+# LICENSE
+# This file is part of the AccessTransparency plugin.
+# AccessTransparency plugin is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+# AccessTransparency plugin is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with AccessTransparency. If not, see <http://www.gnu.org/licenses/>.
+# -------------------------------------------------------------------------
+# @package   accesstransparency
+# @author    the TICGAL team
+# @copyright Copyright (c) 2026 TICGAL team
+# @license   AGPL License 3.0 or (at your option) any later version
+#            http://www.gnu.org/licenses/agpl-3.0-standalone.html
+# @link      https://www.tic.gal
+# @since     2026
+# -------------------------------------------------------------------------
+#}
+
+{% extends "pages/setup/general/base_form.html.twig" %}
 {% import 'components/form/fields_macros.html.twig' as fields %}
+{% import 'components/form/basic_inputs_macros.html.twig' as inputs %}
+
+{% set field_options = {
+    'full_width': true,
+} %}
 
 {% block config_fields %}
-  <form method="POST" action="">
-    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}" />
+	{{ fields.largeTitle(__('Access Transparency Logs Configuration', 'accesstransparency'), 'ti ti-news') }}
 
+	{{ inputs.hidden('id', config.fields['id']) }}
 
-    {{ fields.largeTitle(__('Access Transparency Logs purge configuration', 'accesstransparency'), 'ti ti-news') }}
+	{{ fields.dropdownArrayField('log_retention_minutes', config.fields['log_retention_minutes'], logs_interval_options, __('Log retention', 'accesstransparency'), field_options) }}
 
-      {% set current_retention = log_retention_minutes is defined and log_retention_minutes is not null ? log_retention_minutes : 'keep_all' %}
-
-    {% set logs_interval_options = {
-      'keep_all': __('Keep all', 'accesstransparency'),
-      'delete_all': __('Delete all', 'accesstransparency')
-    } %}
-
-    {% for i in 1..120 %}
-      {% set key = i ~ '' %}
-      {% set logs_interval_options = logs_interval_options|merge({
-        (key): i == 1 ? __('Delete if older than 1 month', 'accesstransparency') : __('Delete if older than %count% months', 'accesstransparency')|replace({'%count%': i})
-      }) %}
-    {% endfor %}
-
-    <div class="row mb-3 align-items-center">
-      <div class="col-xxl-5">
-        <label class="form-label" for="log_retention_minutes">
-          {{ __('Log retention', 'accesstransparency') }}
-        </label>
-        <small class="text-muted d-block">
-          {{ __('Select how long to keep logs', 'accesstransparency') }}
-        </small>
-      </div>
-      <div class="col-xxl-7">
-        <select name="log_retention_minutes" id="log_retention_minutes" class="form-control purgelog_interval">
-          {% for key, label in logs_interval_options %}
-            {% set key_str = key ~ '' %}
-            {% set current_str = current_retention ~ '' %}
-            <option value="{{ key_str }}" {% if current_str == key_str %}selected{% endif %}>
-              {{ label }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-
-    <div class="row mb-3">
-      <div class="col-xxl-12 text-end">
-        <button type="submit" class="btn btn-primary">
-          {{ __('Save', 'accesstransparency') }}
-        </button>
-      </div>
-    </div>
-  </form>
-{% endblock %}
-
-{% block javascripts %}
-  <script type="text/javascript">
-    $(function () {
-      $('.purgelog_interval').select2({
-        width: '100%',
-        minimumResultsForSearch: Infinity
-      });
-    });
-  </script>
+	{{ fields.textField('excluded_logins', config.fields['excluded_logins'] ?? '', __('Excluded logins', 'accesstransparency'), field_options|merge({
+		'helper': __('Comma-separated logins (e.g. service or inventory accounts such as glpi-agent). Nothing is recorded for these accounts: neither their document accesses nor their history and events.', 'accesstransparency'),
+	})) }}
 {% endblock %}

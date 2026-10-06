@@ -35,12 +35,17 @@ Once installed and enabled:
 - **Centralized user activity log** showing actions performed across the system.
 - **File open tracking** to record document access events.
 - **Filterable and paginated views** to easily locate specific actions.
-- **Exportable logs** from both full and filtered views.
-- **Dedicated history tabs** for users and documents.
+- **Exportable logs** (CSV) from both full and filtered views.
+- **Dedicated history tabs** for users and documents, showing where a document was opened from.
 - **Localized records**, displayed in the default GLPI language or English where applicable.
-- **No additional database fields required**, leveraging existing GLPI log data.
+- **Entity-aware**: details of items the viewer cannot read are never displayed.
 
 ## Configuration
 
-- Define how long file open records are kept via **Configuration → General → Access Transparency**.
-- File open logs can be automatically purged using the corresponding **Automatic Action**.
+- Define how long the records are kept via **Configuration → General → Access Transparency**.
+- GLPI history and events are copied into the plugin by the **PluginAccesstransparencyGetLogs** automatic action,
+  and old records are purged by the **PurgeAccessTransparencyLogs** automatic action.
+- Exclude service/system accounts (e.g. `inventory`, `ocsinventory`, `glpi-agent`) from
+  tracking by listing their logins, comma-separated, in **Excluded logins** on the same
+  configuration page. Matching is case-insensitive; nothing is recorded for excluded accounts
+  (neither their document accesses nor their history and events).

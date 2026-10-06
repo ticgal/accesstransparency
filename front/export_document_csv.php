@@ -35,33 +35,35 @@ if (!Plugin::isPluginActive('accesstransparency')) {
     throw new NotFoundHttpException();
 }
 
-Session::checkRight(PluginAccesstransparencyLog::$rightname, READ);
+Session::checkRight(PluginAccesstransparencyDocument::$rightname, READ);
 
-$user = new User();
-$users_id = (int) ($_GET['id'] ?? 0);
-// Same checks as the User tab (core checks can(READ) before loading a tab): the itemtype right and the item scope
-if ($users_id <= 0 || !$user->can($users_id, READ)) {
+$doc = new Document();
+$documents_id = (int) ($_GET['id'] ?? 0);
+// Same checks as the Document tab (core checks can(READ) before loading a tab): the itemtype right and the item scope
+if ($documents_id <= 0 || !$doc->can($documents_id, READ)) {
     throw new NotFoundHttpException();
 }
 
-$filters = PluginAccesstransparencyLog::normalizeFilters($_GET['filters'] ?? []);
+$filters = PluginAccesstransparencyDocument::restrictFiltersToVisibleUsers(PluginAccesstransparencyLog::normalizeFilters($_GET['filters'] ?? []));
+$filters['source'] = [PluginAccesstransparencyLog::DOCUMENT];
 $sql_filters = PluginAccesstransparencyLog::convertFiltersValuesToSqlCriteria($filters);
 
 $rows = [];
-foreach (PluginAccesstransparencyLog::getHistoryData($user, 0, PluginAccesstransparencyCsvexport::MAX_ROWS, $sql_filters) as $log) {
+foreach (PluginAccesstransparencyDocument::getHistoryData($doc, 0, PluginAccesstransparencyCsvexport::MAX_ROWS, $sql_filters) as $log) {
     $rows[] = [
         $log['id'],
-        $log['source_type'],
         $log['source_date'],
-        $log['message'],
+        $log['user_name'],
+        $log['opened_from'] !== null ? sprintf(__('%1$s: %2$s'), $log['opened_from']['label'], $log['opened_from']['name']) : '',
     ];
 }
-if (countElementsInTable(PluginAccesstransparencyLog::getTable(), ['users_id' => $users_id] + $sql_filters) > PluginAccesstransparencyCsvexport::MAX_ROWS) {
+$doc_criteria = ['items_id' => $documents_id, 'itemtype' => Document::getType()] + $sql_filters;
+if (countElementsInTable(PluginAccesstransparencyLog::getTable(), $doc_criteria) > PluginAccesstransparencyCsvexport::MAX_ROWS) {
     $rows[] = PluginAccesstransparencyCsvexport::getTruncatedRow(4);
 }
 
 return (new PluginAccesstransparencyCsvexport(
-    sprintf('accesstransparency-user-%d.csv', $users_id),
-    [__('ID'), __('Source'), _n('Date', 'Dates', 1), __('Message')],
+    sprintf('accesstransparency-document-%d.csv', $documents_id),
+    [__('ID'), _n('Date', 'Dates', 1), User::getTypeName(1), __('Opened from', 'accesstransparency')],
     $rows,
 ))->toResponse();

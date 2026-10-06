@@ -3,7 +3,7 @@
 /**
  * -------------------------------------------------------------------------
  * AccessTransparency plugin for GLPI
- * Copyright (C) 2025 by the TICGAL Team.
+ * Copyright (C) 2026 by the TICGAL Team.
  * https://www.tic.gal
  * -------------------------------------------------------------------------
  * LICENSE
@@ -21,17 +21,17 @@
  * -------------------------------------------------------------------------
  * @package   accesstransparency
  * @author    the TICGAL team
- * @copyright Copyright (c) 2025 TICGAL team
+ * @copyright Copyright (c) 2026 TICGAL team
  * @license   AGPL License 3.0 or (at your option) any later version
  *            http://www.gnu.org/licenses/agpl-3.0-standalone.html
  * @link      https://www.tic.gal
- * @since     2025
+ * @since     2026
  * -------------------------------------------------------------------------
  */
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_ACCESSTRANSPARENCY_VERSION', '1.0.1');
+define('PLUGIN_ACCESSTRANSPARENCY_VERSION', '1.3.0');
 define('PLUGIN_ACCESSTRANSPARENCY_MIN_GLPI', '11.0');
 define('PLUGIN_ACCESSTRANSPARENCY_MAX_GLPI', '11.9');
 
@@ -65,28 +65,37 @@ function plugin_init_accesstransparency(): void
     /** @var array $PLUGIN_HOOKS */
     global $PLUGIN_HOOKS;
 
-    $PLUGIN_HOOKS['csrf_compliant']['accesstransparency'] = true;
-
     Plugin::registerClass(PluginAccesstransparencyConfig::class, ['addtabon' => Config::class]);
     Plugin::registerClass(PluginAccesstransparencyProfile::class, ['addtabon' => Profile::class]);
-    Plugin::registerClass(PluginAccesstransparencyUser::class, ['addtabon' => User::class]);
+    Plugin::registerClass(PluginAccesstransparencyLog::class, ['addtabon' => User::class]);
     Plugin::registerClass(PluginAccesstransparencyDocument::class, ['addtabon' => Document::class]);
 
-    if (Session::getLoginUserID() && (!isset($_REQUEST['_in_modal']) || !$_REQUEST['_in_modal'])) {
-        $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['accesstransparency'] = ['public/tracking.js'];
-    }
+    // Document downloads are tracked server-side (see hook.php)
+    $PLUGIN_HOOKS[Hooks::POST_INIT]['accesstransparency'] = 'plugin_accesstransparency_track_document_download';
 
     $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['accesstransparency'] = 'front/config.form.php';
-    //$PLUGIN_HOOKS[Hooks::DISPLAY_LOGIN]['accesstransparency'] = 'plugin_acesstransparency_displayLogin';
 
     CronTask::register(
-        'PluginAccesstransparencyUserinteractions',
-        'PurgeInteractionLogs',
+        'PluginAccesstransparencyConfig',
+        'PurgeAccessTransparencyLogs',
         HOUR_TIMESTAMP,
         [
-            'param' => 12,
             'state' => 1,
-            'mode'  => CronTask::MODE_INTERNAL,
+            'mode' => CronTask::MODE_EXTERNAL,
+            'hourmin' => 0,
+            'hourmax' => 24,
+        ],
+    );
+
+    CronTask::register(
+        'PluginAccesstransparencyLog',
+        'PluginAccesstransparencyGetLogs',
+        HOUR_TIMESTAMP,
+        [
+            'state' => 1,
+            'mode' => CronTask::MODE_EXTERNAL,
+            'hourmin' => 0,
+            'hourmax' => 24,
         ],
     );
 }

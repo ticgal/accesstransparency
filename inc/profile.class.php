@@ -3,7 +3,7 @@
 /**
  * -------------------------------------------------------------------------
  * AccessTransparency plugin for GLPI
- * Copyright (C) 2025 by the TICGAL Team.
+ * Copyright (C) 2026 by the TICGAL Team.
  * https://www.tic.gal
  * -------------------------------------------------------------------------
  * LICENSE
@@ -21,15 +21,15 @@
  * -------------------------------------------------------------------------
  * @package   accesstransparency
  * @author    the TICGAL team
- * @copyright Copyright (c) 2025 TICGAL team
+ * @copyright Copyright (c) 2026 TICGAL team
  * @license   AGPL License 3.0 or (at your option) any later version
  *            http://www.gnu.org/licenses/agpl-3.0-standalone.html
  * @link      https://www.tic.gal
- * @since     2025
+ * @since     2026
  * -------------------------------------------------------------------------
  */
 
-class PluginAccesstransparencyProfile extends Profile
+class PluginAccesstransparencyProfile extends CommonDBTM
 {
     public static $rightname = 'profile';
 
@@ -39,10 +39,15 @@ class PluginAccesstransparencyProfile extends Profile
     public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string|array
     {
         switch ($item->getType()) {
-            case 'Profile':
+            case Profile::class:
                 return self::createTabEntry('Access Transparency');
         }
         return '';
+    }
+
+    public static function getIcon(): string
+    {
+        return 'ti ti-window';
     }
 
     /**
@@ -78,14 +83,12 @@ class PluginAccesstransparencyProfile extends Profile
         }
 
         $rights = self::getGeneralRights();
-
         $matrix_options = [
             'canedit' => $can_edit,
             'title'   => __('Access Transparency', 'accesstransparency'),
         ];
 
         $profile->displayRightsChoiceMatrix($rights, $matrix_options);
-
         if ($can_edit) {
             echo "<div class='text-center'>";
             echo Html::hidden('id', ['value' => $profile->getID()]);

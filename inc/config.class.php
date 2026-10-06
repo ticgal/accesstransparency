@@ -3,7 +3,7 @@
 /**
  * -------------------------------------------------------------------------
  * AccessTransparency plugin for GLPI
- * Copyright (C) 2025 by the TICGAL Team.
+ * Copyright (C) 2026 by the TICGAL Team.
  * https://www.tic.gal
  * -------------------------------------------------------------------------
  * LICENSE
@@ -21,34 +21,32 @@
  * -------------------------------------------------------------------------
  * @package   accesstransparency
  * @author    the TICGAL team
- * @copyright Copyright (c) 2025 TICGAL team
+ * @copyright Copyright (c) 2026 TICGAL team
  * @license   AGPL License 3.0 or (at your option) any later version
  *            http://www.gnu.org/licenses/agpl-3.0-standalone.html
  * @link      https://www.tic.gal
- * @since     2025
+ * @since     2026
  * -------------------------------------------------------------------------
  */
 
 use Glpi\Application\View\TemplateRenderer;
-use Twig\Loader\FilesystemLoader;
-use Twig\Environment;
-use Twig\TwigFunction;
-use Twig\TwigFilter;
-use Twig\Markup;
 
 class PluginAccesstransparencyConfig extends CommonDBTM
 {
     public static $rightname = 'config';
+
     private static ?self $instance = null;
 
-    public const DELETE_ALL = 'delete_all';
     public const KEEP_ALL   = 'keep_all';
-    public $fields = ['log_retention_minutes'];
 
+    /**
+     * {@inheritDoc}
+     */
     public function __construct()
     {
         /** @var \DBmysql $DB */
         global $DB;
+
         if ($DB->tableExists($this->getTable())) {
             $this->getFromDB(1);
         }
@@ -57,11 +55,6 @@ class PluginAccesstransparencyConfig extends CommonDBTM
     public static function getTypeName($nb = 0): string
     {
         return 'Access Transparency';
-    }
-
-    public static function getIcon(): string
-    {
-        return 'fa-solid fa-cube';
     }
 
     public static function getInstance(int $n = 1): self
@@ -75,8 +68,76 @@ class PluginAccesstransparencyConfig extends CommonDBTM
         return self::$instance;
     }
 
+    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string|array
+    {
+        if ($item::getType() === Config::getType()) {
+            return self::createTabEntry(self::getTypeName());
+        }
+
+        return '';
+    }
+
+    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
+    {
+        if ($item::getType() === Config::getType()) {
+            self::showConfigForm();
+        }
+        return true;
+    }
+
+    public static function showConfigForm(): bool
+    {
+
+        $config = self::getInstance();
+
+        TemplateRenderer::getInstance()->display('@accesstransparency/pages/config.html.twig', [
+            'config' => $config,
+            'canedit' => Session::haveRight(self::$rightname, UPDATE),
+            'form_path' => $config->getFormURL(),
+            'logs_interval_options' => self::getLogRetentionOptions(),
+        ]);
+
+        return true;
+    }
+
+    public static function getLogRetentionOptions(): array
+    {
+        $values = [
+            self::KEEP_ALL => __('Keep all logs', 'accesstransparency'),
+        ];
+        for ($i = 1; $i <= 120; $i++) {
+            $values[$i] = sprintf(_n('Delete if older than %s month', 'Delete if older than %s months', $i, 'accesstransparency'), $i);
+        }
+        return $values;
+    }
+
     public function prepareInputForUpdate($input): false|array
     {
+        // Only the fields of the form: the ingestion cursors (last_log_id, last_event_id) are managed internally
+        $input = array_filter(
+            $input,
+            static fn($key) => in_array($key, ['id', 'log_retention_minutes', 'excluded_logins'], true) || str_starts_with((string) $key, '_'),
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        if (array_key_exists('log_retention_minutes', $input)) {
+            $retention = (string) $input['log_retention_minutes'];
+            if (!array_key_exists($retention, self::getLogRetentionOptions())) {
+                Session::addMessageAfterRedirect(__s('Invalid log retention', 'accesstransparency'), false, ERROR);
+                return false;
+            }
+            $input['log_retention_minutes'] = $retention;
+        }
+
+        if (array_key_exists('excluded_logins', $input)) {
+            if (!is_string($input['excluded_logins'])) {
+                return false;
+            }
+            // Stored normalized, comma-separated like the (single line) form field
+            $input['excluded_logins'] = implode(', ', $this->normalizeLoginsList($input['excluded_logins']));
+        }
+
+        // Log update fields in history manually
         foreach ($this->fields as $key => $value) {
             if (isset($input[$key]) && $input[$key] != $value) {
                 Log::history(1, Config::class, [1, $key . ' ' . $value, $input[$key]]);
@@ -85,121 +146,102 @@ class PluginAccesstransparencyConfig extends CommonDBTM
         return $input;
     }
 
-    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string|array
+    /**
+     * Logins (lowercase) of the accounts that must not be tracked, e.g. service or inventory accounts.
+     *
+     * @return string[]
+     */
+    public function getExcludedLoginsList(): array
     {
-        if ($item::getType() === Config::getType()) {
-            if (isset($_POST['log_retention_minutes'])) {
-                $_SESSION['accesstransparency']['log_retention_minutes'] = $_POST['log_retention_minutes'];
-            }
-
-            Session::checkLoginUser();
-            $_SESSION['glpicsrf_token'] = Session::getNewCSRFToken();
-            return self::createTabEntry(self::getTypeName(1));
-        }
-        return '';
+        return $this->normalizeLoginsList((string) ($this->fields['excluded_logins'] ?? ''));
     }
 
-    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
+    /**
+     * @return string[] lowercase logins, from a list separated by new lines or commas
+     */
+    private function normalizeLoginsList(string $raw): array
     {
-        switch ($item::getType()) {
-            case Config::getType():
-                return self::showFormConfig();
-        }
-        return false;
+        $logins = preg_split('/[\r\n,]+/', $raw) ?: [];
+        $logins = array_filter(array_map(static fn($login) => mb_strtolower(trim($login)), $logins), static fn($login) => $login !== '');
+        return array_values(array_unique($logins));
     }
 
-    public static function showFormConfig(): bool
+    /**
+     * Is the given login (default: the current user) excluded from tracking?
+     */
+    public static function isUserExcluded(?string $login = null): bool
+    {
+        $login ??= $_SESSION['glpiname'] ?? '';
+        if ($login === '') {
+            return false;
+        }
+
+        return in_array(mb_strtolower($login), self::getInstance()->getExcludedLoginsList(), true);
+    }
+
+    /**
+     * IDs of the users whose login is excluded from tracking.
+     *
+     * @return int[]
+     */
+    public static function getExcludedUsersIds(): array
+    {
+        /** @var \DBmysql $DB */
+        global $DB;
+
+        $logins = self::getInstance()->getExcludedLoginsList();
+        if ($logins === []) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($DB->request(['SELECT' => 'id', 'FROM' => User::getTable(), 'WHERE' => ['name' => $logins]]) as $row) {
+            $ids[] = (int) $row['id'];
+        }
+        return $ids;
+    }
+
+    public static function cronInfo(string $name)
+    {
+        switch (strtolower($name)) {
+            case 'purgeaccesstransparencylogs':
+                return ['description' => __('Purge old logs', 'accesstransparency')];
+        }
+
+        return [];
+    }
+
+    public static function cronPurgeAccessTransparencyLogs(CronTask $crontask)
     {
         /** @var \DBmysql $DB */
         global $DB;
 
         $config = self::getInstance();
-        if(file_exists(GLPI_ROOT . '/plugins/accesstransparency/templates')) {
-            $pluginTemplatePath = GLPI_ROOT . '/plugins/accesstransparency/templates';
-        }else{
-            $pluginTemplatePath = GLPI_ROOT . '/marketplace/accesstransparency/templates';
+        $time  = $config->fields['log_retention_minutes'] ?? self::KEEP_ALL;
+
+        // Anything other than a number of months (keep_all, NULL, legacy values) keeps everything:
+        // (int) of those values is 0, which would purge every row older than now.
+        $months = is_numeric($time) ? (int) $time : 0;
+        if ($months < 1) {
+            return 0;
         }
-        $coreTemplatePath   = GLPI_ROOT . '/templates';
 
+        $table = PluginAccesstransparencyLog::getTable();
+        $where = ['source_date' => ['<', date('Y-m-d H:i:s', strtotime(sprintf('-%d months', $months)))]];
 
-        if (isset($_SESSION['accesstransparency']['log_retention_minutes'])) {
-            $value = $_SESSION['accesstransparency']['log_retention_minutes'];
-
-            if ($DB->request(['FROM' => self::getTable(), 'WHERE' => ['id' => 1]])->count()) {
-                $DB->update(
-                    self::getTable(),
-                    ['log_retention_minutes' => $value],
-                    ['id' => 1],
-                );
-            } else {
-                $DB->insert(self::getTable(), [
-                    'id' => 1,
-                    'log_retention_minutes' => $value,
-                ]);
-            }
-
-            $config->setLogRetentionMinutes($value);
-
-            Session::addMessageAfterRedirect(
-                __('Configuration saved successfully', 'accesstransparency'),
-                true,
-                INFO,
-            );
+        $count = countElementsInTable($table, $where);
+        if ($count > 0) {
+            // One DELETE statement: deleteByCriteria() loads and deletes the rows one by one
+            $DB->delete($table, $where);
         }
-/*
-        $loader = new FilesystemLoader([$pluginTemplatePath, $coreTemplatePath]);
-        $twig = new Environment($loader);
 
-        $twig->addFunction(new TwigFunction('idor_token', function ($name = '_glpi_csrf_token') {
-            $token = Session::getNewCSRFToken();
-            return new Markup('<input type="hidden" name="' . htmlspecialchars($name) . '" value="' . htmlspecialchars($token) . '">', 'UTF-8');
-        }));
-
-        $twig->addFunction(new TwigFunction('call', function ($fn, $args = []) {
-            return is_callable($fn) ? call_user_func_array($fn, $args) : null;
-        }));
-
-        $twig->addFunction(new TwigFunction('session', fn($key) => null));
-        $twig->addFunction(new TwigFunction('render_illustration', fn($item = null, $options = []) => '<!-- illustration -->'));
-        $twig->addFunction(new TwigFunction('__', fn($text, $domain = '') => $text));
-        $twig->addFunction(new TwigFunction('_x', fn($text, $context = '') => $text));
-        $twig->addFunction(new TwigFunction('csrf_token', function ($token_id = '_glpi_csrf_token') {
-            return new Markup('<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">', 'UTF-8');
-        }));
-        $twig->addFunction(new TwigFunction('get_current_locale', fn() => 'en_US'));
-        $twig->addFunction(new TwigFunction('config', fn($key, $default = null) => $default));
-
-        $twig->addFilter(new TwigFilter('safe_html', fn($string) => $string));
-        $twig->addFilter(new TwigFilter('safe_dom_id', fn($value) => $value));
-        $twig->addFilter(new TwigFilter('itemtype_dropdown', fn($value) => $value));
-        $twig->addFilter(new TwigFilter('itemtype_form_path', fn($value) => '#'));
-        */
-        $twig = TemplateRenderer::getInstance();
-        $twig->getEnvironment()->enableAutoReload();
-        echo $twig->render('@accesstransparency/pages/config.html.twig', [
-            'item' => $config,
-            'log_retention_minutes' => $config->getLogRetentionMinutes(),
-        ]);
-        return true;
+        $crontask->addVolume($count);
+        return $count > 0 ? 1 : 0;
     }
 
-    public function getLogRetentionMinutes(): string
+    public static function getIcon(): string
     {
-        if (isset($this->fields['log_retention_minutes'])) {
-            return $this->fields['log_retention_minutes'];
-        }
-
-        $cfg = Config::getConfigurationValues('plugin:accesstransparency');
-        if (!empty($cfg['log_retention_minutes'])) {
-            return $cfg['log_retention_minutes'];
-        }
-
-        return self::KEEP_ALL;
-    }
-
-    public function setLogRetentionMinutes(string $value): void
-    {
-        $this->fields['log_retention_minutes'] = $value;
+        return 'ti ti-window';
     }
 
     public static function install(Migration $migration): void
@@ -211,32 +253,64 @@ class PluginAccesstransparencyConfig extends CommonDBTM
         $default_collation  = DBConnection::getDefaultCollation();
         $default_key_sign   = DBConnection::getDefaultPrimaryKeySignOption();
 
-        $tableConfig = self::getTable();
-        if (!$DB->tableExists($tableConfig)) {
-            $migration->displayMessage("Installing $tableConfig");
-            $DB->doQuery("CREATE TABLE `$tableConfig` (
-                `id` INT {$default_key_sign} NOT NULL AUTO_INCREMENT,
-                `log_retention_minutes` VARCHAR(50) DEFAULT NULL,
-                PRIMARY KEY (`id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC;");
-        }
+        $table = self::getTable();
+        if (!$DB->tableExists($table)) {
+            $migration->displayMessage("Installing $table");
+            $query = "CREATE TABLE IF NOT EXISTS `$table` (
+            `id` INT {$default_key_sign} NOT NULL AUTO_INCREMENT,
+            `log_retention_minutes` VARCHAR(50) DEFAULT NULL,
+            `excluded_logins` TEXT DEFAULT NULL,
+            `last_log_id` INT {$default_key_sign} NOT NULL DEFAULT 0,
+            `last_event_id` INT {$default_key_sign} NOT NULL DEFAULT 0,
+            PRIMARY KEY (`id`)
+         )ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC;";
 
-        if (!$DB->request(['SELECT' => ['id'], 'FROM' => $tableConfig, 'LIMIT' => 1])->count()) {
-            $DB->insert($tableConfig, ['id' => 1, 'log_retention_minutes' => null]);
+            $DB->doQuery($query);
+
+            $config = new self();
+            $config->add([
+                'id' => 1,
+                'log_retention_minutes' => self::KEEP_ALL,
+                'excluded_logins' => '',
+            ]);
+        } else {
+            // 1.3.0 (already present on installs coming from the TICGAL-Dev/marketplace line)
+            $migration->addField($table, 'excluded_logins', 'text', ['after' => 'log_retention_minutes']);
+
+            // 1.3.0: cursors of the log ingestion cron, started where the previous version stopped
+            $logs_table = PluginAccesstransparencyLog::getTable();
+            foreach (['last_log_id' => PluginAccesstransparencyLog::LOG, 'last_event_id' => PluginAccesstransparencyLog::EVENT] as $field => $source_type) {
+                if (!$DB->fieldExists($table, $field)) {
+                    $migration->addField($table, $field, 'fkey');
+                    if ($DB->tableExists($logs_table)) {
+                        $migration->addPostQuery(
+                            "UPDATE `$table` SET `$field` = (SELECT COALESCE(MAX(`source_id`), 0) FROM `$logs_table` WHERE `source_type` = $source_type)",
+                        );
+                    }
+                }
+            }
+
+            // 1.1.x leftovers
+            $migration->dropField($table, 'file_log_retention_minutes');
+
+            // The "delete all" option no longer exists, and NULL used to mean "keep all"
+            $migration->addPostQuery($DB->buildUpdate(
+                $table,
+                ['log_retention_minutes' => self::KEEP_ALL],
+                [
+                    'OR' => [
+                        ['log_retention_minutes' => null],
+                        ['NOT' => ['log_retention_minutes' => array_merge([self::KEEP_ALL], array_map('strval', range(1, 120)))]],
+                    ],
+                ],
+            ));
         }
     }
 
     public static function uninstall(Migration $migration): void
     {
-        /** @var \DBmysql $DB */
-        global $DB;
-        $tableConfig = self::getTable();
-
-        if ($DB->tableExists($tableConfig)) {
-            $migration->displayMessage("Dropping table $tableConfig");
-            $DB->doQuery("DROP TABLE `$tableConfig`;");
-        }
-
-        Config::deleteConfigurationValues('plugin:accesstransparency');
+        $table = self::getTable();
+        $migration->displayMessage("Uninstalling $table");
+        $migration->dropTable($table);
     }
 }
