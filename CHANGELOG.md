@@ -1,6 +1,6 @@
 # Changelog for AccessTransparency
 
-## [1.3.0] - Unreleased
+## [1.3.0] - 2026-10-06
 ### Added
 - Server-side tracking of document downloads, whatever the way the document is opened
 - Item a document was opened from (ticket, change...) on the Document and User tabs
