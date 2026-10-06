@@ -3,6 +3,7 @@ msgstr ""
 "Project-Id-Version: Access Transparency\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 09:26+0000\n"
+"PO-Revision-Date: 2026-10-06 09:26+0000\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -10,90 +11,80 @@ msgstr ""
 "X-Generator: Localazy (https://localazy.com)\n"
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
 
-#: front/export_document_csv.php:67 templates/pages/document.html.twig:47
-msgid "Opened from"
-msgstr "Opened from"
+msgid "Get logs"
+msgstr "Obtener registros"
 
-#: inc/csvexport.class.php:122
+msgid "Limit number of logs to retrieve"
+msgstr "Limitar el número de registros a recuperar"
+
+msgid "Log entry"
+msgstr "Entrada de registro"
+
+msgid "Event"
+msgstr "Evento"
+
+msgid "Document access"
+msgstr "Acceso a documento"
+
 #, php-format
 msgid "Export limited to the %d most recent entries"
-msgstr "Export limited to the %d most recent entries"
+msgstr "Exportación limitada a las %d entradas más recientes"
 
-#: inc/document.class.php:39 inc/profile.class.php:88
 msgid "Access Transparency"
 msgstr "Access Transparency"
 
-#: inc/config.class.php:106
 msgid "Keep all logs"
-msgstr "Keep all logs"
+msgstr "Conservar todos los registros"
 
-#: inc/config.class.php:208
+#, php-format
+msgid "Delete if older than %s month"
+msgid_plural "Delete if older than %s months"
+msgstr[0] "Eliminar si tiene más de %s mes"
+msgstr[1] "Eliminar si tiene más de %s meses"
+
 msgid "Purge old logs"
-msgstr "Purge old logs"
+msgstr "Purgar registros antiguos"
 
-#: inc/log.class.php:48
-msgid "Get logs"
-msgstr "Get logs"
+msgid "Opened from"
+msgstr "Abierto desde"
 
-#: inc/log.class.php:48
-msgid "Limit number of logs to retrieve"
-msgstr "Limit number of logs to retrieve"
-
-#: inc/log.class.php:382
-msgid "Log entry"
-msgstr "Log entry"
-
-#: inc/log.class.php:383
-msgid "Event"
-msgstr "Event"
-
-#: inc/log.class.php:384
-msgid "Document access"
-msgstr "Document access"
-
-#: templates/pages/config.html.twig:39
 msgid "Access Transparency Logs Configuration"
-msgstr "Access Transparency Logs Configuration"
+msgstr "Configuración de los registros de Access Transparency"
 
-#: templates/pages/config.html.twig:43
 msgid "Log retention"
 msgstr "Retención de registros"
 
-#: templates/pages/config.html.twig:45
 msgid "Excluded logins"
-msgstr "Excluded logins"
+msgstr "Logins excluidos"
 
-#: templates/pages/config.html.twig:46
 msgid ""
-"Comma-separated logins (e.g. service or inventory accounts such as glpi-"
-"agent). Nothing is recorded for these accounts: neither their document "
-"accesses nor their history and events."
+"Comma-separated logins (e.g. service or inventory accounts such as "
+"glpi-agent). Nothing is recorded for these accounts: neither their "
+"document accesses nor their history and events."
 msgstr ""
-"Comma-separated logins (e.g. service or inventory accounts such as glpi-"
-"agent). Nothing is recorded for these accounts: neither their document "
-"accesses nor their history and events."
+"Logins separados por comas (p. ej., cuentas de servicio o de "
+"inventario como glpi-agent). No se registra nada de estas cuentas: ni "
+"sus accesos a documentos ni su historial y eventos."
+
+msgid "Item not available or not visible to you"
+msgstr "Elemento no disponible o que no puedes ver"
 
 #, php-format
-#~ msgid "%s event: %s"
-#~ msgstr "%s event: %s"
+msgid "%s event: %s"
+msgstr "Evento %s: %s"
 
 #, php-format
-#~ msgid "Accessed document #%d"
-#~ msgstr "Accessed document #%d"
-
-#~ msgid "Item not available or not visible to you"
-#~ msgstr "Item not available or not visible to you"
+msgid "Accessed document #%d"
+msgstr "Acceso al documento #%d"
 
 #, php-format
-#~ msgid "Unknown itemtype: %s"
-#~ msgstr "Unknown itemtype: %s"
+msgid "Unknown itemtype: %s"
+msgstr "Tipo de elemento desconocido: %s"
 
 #, php-format
-#~ msgid "(opened from %s)"
-#~ msgstr "(opened from %s)"
+msgid "(opened from %s)"
+msgstr "(abierto desde %s)"
 
-#, php-format
-#~ msgid "Delete if older than %s month"
-#~ msgid_plural "Delete if older than %s months"
-#~ msgstr[0] "Delete if older than %s month"
-#~ msgstr[1] "Delete if older than %s months"
+msgid "Invalid log retention"
+msgstr "Retención de registros no válida"
+

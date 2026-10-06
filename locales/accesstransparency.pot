@@ -1,78 +1,85 @@
-# accesstransparency Glpi Plugin.
-# Copyright (C) 2026 TICgal
-# This file is distributed under the same license as the PACKAGE package.
-# TICgal, 2026
-#
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: Access Transparency\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 09:26+0000\n"
-"PO-Revision-Date: 2026-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: front/export_document_csv.php:67 templates/pages/document.html.twig:47
-msgid "Opened from"
+msgid "Get logs"
 msgstr ""
 
-#: inc/csvexport.class.php:122
+msgid "Limit number of logs to retrieve"
+msgstr ""
+
+msgid "Log entry"
+msgstr ""
+
+msgid "Event"
+msgstr ""
+
+msgid "Document access"
+msgstr ""
+
 #, php-format
 msgid "Export limited to the %d most recent entries"
 msgstr ""
 
-#: inc/document.class.php:39 inc/profile.class.php:88
 msgid "Access Transparency"
 msgstr ""
 
-#: inc/config.class.php:106
 msgid "Keep all logs"
 msgstr ""
 
-#: inc/config.class.php:208
+#, php-format
+msgid "Delete if older than %s month"
+msgid_plural "Delete if older than %s months"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Purge old logs"
 msgstr ""
 
-#: inc/log.class.php:48
-msgid "Get logs"
+msgid "Opened from"
 msgstr ""
 
-#: inc/log.class.php:48
-msgid "Limit number of logs to retrieve"
-msgstr ""
-
-#: inc/log.class.php:382
-msgid "Log entry"
-msgstr ""
-
-#: inc/log.class.php:383
-msgid "Event"
-msgstr ""
-
-#: inc/log.class.php:384
-msgid "Document access"
-msgstr ""
-
-#: templates/pages/config.html.twig:39
 msgid "Access Transparency Logs Configuration"
 msgstr ""
 
-#: templates/pages/config.html.twig:43
 msgid "Log retention"
 msgstr ""
 
-#: templates/pages/config.html.twig:45
 msgid "Excluded logins"
 msgstr ""
 
-#: templates/pages/config.html.twig:46
 msgid ""
-"Comma-separated logins (e.g. service or inventory accounts such as glpi-"
-"agent). Nothing is recorded for these accounts: neither their document "
-"accesses nor their history and events."
+"Comma-separated logins (e.g. service or inventory accounts such as "
+"glpi-agent). Nothing is recorded for these accounts: neither their "
+"document accesses nor their history and events."
 msgstr ""
+
+msgid "Item not available or not visible to you"
+msgstr ""
+
+#, php-format
+msgid "%s event: %s"
+msgstr ""
+
+#, php-format
+msgid "Accessed document #%d"
+msgstr ""
+
+#, php-format
+msgid "Unknown itemtype: %s"
+msgstr ""
+
+#, php-format
+msgid "(opened from %s)"
+msgstr ""
+
+msgid "Invalid log retention"
+msgstr ""
+
