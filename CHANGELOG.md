@@ -14,7 +14,8 @@
 - The impersonated user is added to a history row only when the whole user name is the translated "impersonated by" sentence (any core language), so renaming a user can no longer copy their actions into another user's trail
 
 ### Fixed
-- A history row whose source `glpi_logs` entry was purged by the core no longer breaks the User tab
+- A history row whose source `glpi_logs` entry was purged by the core no longer breaks the User tab: the linked itemtype is now stored at ingestion (backfilled on update for the existing rows), and the actions that need it show the "not available" placeholder when it is unknown
+- The automatic actions are registered when the plugin is installed or updated instead of on every request
 
 ## [1.3.0] - 2026-10-06
 ### Added

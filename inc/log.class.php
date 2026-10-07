@@ -72,6 +72,7 @@ class PluginAccesstransparencyLog extends CommonDBTM
                     'itemtype' => $row['itemtype'],
                     'items_id' => $row['items_id'],
                     'action_code' => $row['linked_action'],
+                    'itemtype_link' => $row['itemtype_link'],
                     'id_search_option' => $row['id_search_option'],
                     'old_value' => $row['old_value'],
                     'new_value' => $row['new_value'],
@@ -781,8 +782,31 @@ class PluginAccesstransparencyLog extends CommonDBTM
         }
 
         $SEARCHOPTION = SearchOption::getOptionsForItemtype($data["itemtype"]);
+        // Stored at ingestion (1.3.1); older rows whose backfill found no source row read it from the core row
+        $itemtype_link = $data['itemtype_link'] ?? null;
         $log = new Log();
-        $log->getFromDB($data["source_id"]);
+        if ($itemtype_link === null) {
+            $log->getFromDB($data["source_id"]);
+            $itemtype_link = $log->fields['itemtype_link'] ?? null;
+        }
+        $log->fields = ['itemtype_link' => (string) $itemtype_link];
+
+        // These actions are described through the linked item: without it (source row purged by the core)
+        // there is nothing to show
+        if (
+            $itemtype_link === null || $itemtype_link === ''
+        ) {
+            $needs_link = [
+                Log::HISTORY_UPDATE_DEVICE,
+                Log::HISTORY_ADD_RELATION, Log::HISTORY_UPDATE_RELATION, Log::HISTORY_DEL_RELATION,
+                Log::HISTORY_LOCK_RELATION, Log::HISTORY_UNLOCK_RELATION,
+                Log::HISTORY_ADD_SUBITEM, Log::HISTORY_UPDATE_SUBITEM, Log::HISTORY_DELETE_SUBITEM,
+                Log::HISTORY_LOCK_SUBITEM, Log::HISTORY_UNLOCK_SUBITEM,
+            ];
+            if (in_array((int) $data['action_code'], $needs_link, true)) {
+                return __s('Item not available or not visible to you', 'accesstransparency');
+            }
+        }
 
         $item = getItemForItemtype($data["itemtype"]);
         $item->getFromDB($data["items_id"]);
@@ -1337,6 +1361,7 @@ class PluginAccesstransparencyLog extends CommonDBTM
                `service` varchar(255) DEFAULT NULL,
                `source_itemtype` varchar(255) DEFAULT NULL,
                `source_items_id` INT {$default_key_sign} NOT NULL default 0,
+               `itemtype_link` varchar(255) DEFAULT NULL,
 				   `date_creation` TIMESTAMP NULL DEFAULT NULL,
                PRIMARY KEY (`id`),
                KEY `users_id_source_date` (`users_id`, `source_date`),
@@ -1351,6 +1376,16 @@ class PluginAccesstransparencyLog extends CommonDBTM
             // 1.3.0: item a document was opened from
             $migration->addField($table, 'source_itemtype', 'string', ['after' => 'service']);
             $migration->addField($table, 'source_items_id', 'fkey', ['after' => 'source_itemtype']);
+            // 1.3.1: itemtype_link of the source history row, so that the message doesn't depend on a core row
+            // the core may have purged. Rows whose source row is already gone stay NULL.
+            $migration->addField($table, 'itemtype_link', 'string', ['after' => 'source_items_id']);
+            $core_logs_table = Log::getTable();
+            $migration->addPostQuery($DB->buildUpdate(
+                $table,
+                ["$table.itemtype_link" => new \Glpi\DBAL\QueryExpression(DBmysql::quoteName("$core_logs_table.itemtype_link"))],
+                ["$table.source_type" => self::LOG, "$table.itemtype_link" => null],
+                ['INNER JOIN' => [$core_logs_table => ['ON' => [$table => 'source_id', $core_logs_table => 'id']]]],
+            ));
             // 1.3.0: store the itemtype of the events ingested before, to check the viewer can see their item
             self::backfillEventsItemtype();
 

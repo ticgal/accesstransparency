@@ -52,6 +52,21 @@ function plugin_accesstransparency_install(): bool
 
     plugin_accesstransparency_migrate_legacy_tables($migration);
 
+    // Registered here and not on every request; register() ignores tasks that already exist
+    foreach (
+        [
+            [PluginAccesstransparencyConfig::class, 'PurgeAccessTransparencyLogs'],
+            [PluginAccesstransparencyLog::class, 'PluginAccesstransparencyGetLogs'],
+        ] as [$itemtype, $name]
+    ) {
+        CronTask::register($itemtype, $name, HOUR_TIMESTAMP, [
+            'state' => 1,
+            'mode' => CronTask::MODE_EXTERNAL,
+            'hourmin' => 0,
+            'hourmax' => 24,
+        ]);
+    }
+
     return true;
 }
 
