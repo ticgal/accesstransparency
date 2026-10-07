@@ -1,6 +1,6 @@
 # Changelog for AccessTransparency
 
-## [1.3.1-beta.1] - 2026-10-07
+## [1.3.1] - 2026-10-07
 ### Changed
 - New installations keep the records for 12 months by default instead of keeping them all (existing installations keep their setting)
 - The configuration page states that the core log and event purge settings do not apply to the records kept by the plugin
