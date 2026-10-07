@@ -53,6 +53,9 @@ msgstr "Access Transparency Logs Configuration"
 msgid "Log retention"
 msgstr "Log retention"
 
+msgid "The core log and event purge settings do not apply to the records kept by this plugin: only this retention does. The records of a user are deleted when the user is purged."
+msgstr "The core log and event purge settings do not apply to the records kept by this plugin: only this retention does. The records of a user are deleted when the user is purged."
+
 msgid "Excluded logins"
 msgstr "Excluded logins"
 

@@ -38,6 +38,7 @@ class PluginAccesstransparencyConfig extends CommonDBTM
     private static ?self $instance = null;
 
     public const KEEP_ALL   = 'keep_all';
+    public const DEFAULT_RETENTION_MONTHS = 12;
 
     /**
      * {@inheritDoc}
@@ -270,7 +271,8 @@ class PluginAccesstransparencyConfig extends CommonDBTM
             $config = new self();
             $config->add([
                 'id' => 1,
-                'log_retention_minutes' => self::KEEP_ALL,
+                // Bounded by default, in line with the core purge of its own history: existing installs keep their setting
+                'log_retention_minutes' => (string) self::DEFAULT_RETENTION_MONTHS,
                 'excluded_logins' => '',
             ]);
         } else {

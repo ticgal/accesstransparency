@@ -216,13 +216,14 @@ class PluginAccesstransparencyLog extends CommonDBTM
     /**
      * Users of a glpi_logs.user_name value, as built by Log::history():
      * - "<name> (<id>)", from User::getNameForLog();
-     * - "<name A> (<id A>) impersonated by <name B> (<id B>)" when impersonation is active, with a
-     *   separator translated in the language of the session: the row is attributed to both users.
+     * - sprintf(__('%1$s impersonated by %2$s'), "<name A> (<id A>)", "<name B> (<id B>)") when impersonation
+     *   is active, translated in the language of the session: the row is attributed to both users.
      *
      * Names are user-controlled and may contain "(<id>)" themselves ("Mallory (77)" gives "Mallory (77) (42)"),
-     * so only the trailing id is trusted as is. The impersonated user is added only when the value starts with
-     * their current name and id and ends with the impersonator's current name and id; when that can't be
-     * verified (e.g. a user was renamed since), the row is attributed to the trailing id only.
+     * so only the trailing id is trusted as is. The impersonated user is added only when the whole value is
+     * exactly the impersonation sentence (in one of the languages in use) built with the current name and id of
+     * both users; when that can't be verified (e.g. a user was renamed since), the row is attributed to the
+     * trailing id only.
      *
      * @return int[]
      */
@@ -236,28 +237,66 @@ class PluginAccesstransparencyLog extends CommonDBTM
 
         // Single user, whatever their name contains
         $last_name = self::getUserFormattedNameForLog($last_id);
-        if ($last_name === null || $prefix === $last_name || !str_ends_with($prefix, $last_name)) {
+        if ($last_name === null || $prefix === $last_name) {
             return [$last_id];
         }
 
-        // Impersonation: "<name A> (<id A>)<separator><name B>", B being the user of the trailing id
-        $head = substr($prefix, 0, strlen($prefix) - strlen($last_name));
-        if (preg_match_all('/ \((\d+)\)/', $head, $candidates, PREG_OFFSET_CAPTURE)) {
-            foreach ($candidates[1] as $index => [$first_id]) {
+        // Impersonation: the whole value must be the translated sentence, nothing else is trusted
+        $formats = self::getImpersonationFormats();
+        if (preg_match_all('/\((\d+)\)/', $prefix, $candidates)) {
+            foreach (array_unique($candidates[1]) as $first_id) {
                 $first_id = (int) $first_id;
-                $segment_end = $candidates[0][$index][1] + strlen($candidates[0][$index][0]);
-                if (
-                    $first_id > 0
-                    && $first_id !== $last_id
-                    && $segment_end < strlen($head) // non-empty separator
-                    && substr($head, 0, $candidates[0][$index][1]) === self::getUserFormattedNameForLog($first_id)
-                ) {
-                    return [$first_id, $last_id];
+                $first_name = self::getUserFormattedNameForLog($first_id);
+                if ($first_id <= 0 || $first_id === $last_id || $first_name === null) {
+                    continue;
+                }
+                foreach ($formats as $format) {
+                    if (@sprintf($format, "$first_name ($first_id)", "$last_name ($last_id)") === $user_name) {
+                        return [$first_id, $last_id];
+                    }
                 }
             }
         }
 
         return [$last_id];
+    }
+
+    /**
+     * Translations of core's '%1$s impersonated by %2$s' in every language of the core: a row is written in the
+     * language of the impersonator at that time, which may not be the one they use now.
+     *
+     * @return string[]
+     */
+    private static function getImpersonationFormats(): array
+    {
+        /** @var array $CFG_GLPI */
+        global $CFG_GLPI;
+
+        static $formats = null;
+        if ($formats !== null) {
+            return $formats;
+        }
+
+        $msgid = '%1$s impersonated by %2$s';
+        $formats = [$msgid];
+
+        $loader = new \Laminas\I18n\Translator\Loader\Gettext();
+        foreach ($CFG_GLPI['languages'] ?? [] as $language => $data) {
+            $file = GLPI_I18N_DIR . '/' . $data[1];
+            if (!is_file($file)) {
+                continue;
+            }
+            try {
+                $translation = $loader->load((string) $language, $file)[$msgid] ?? null;
+            } catch (\Throwable) {
+                continue;
+            }
+            if (is_string($translation) && $translation !== '') {
+                $formats[] = $translation;
+            }
+        }
+
+        return $formats = array_values(array_unique($formats));
     }
 
     /**
@@ -420,6 +459,17 @@ class PluginAccesstransparencyLog extends CommonDBTM
          && self::canViewRowItem($this->fields);
     }
 
+    /**
+     * Purge hook of User: the trail of a purged user is deleted with the account (personal data).
+     */
+    public static function itemPurge(User $item): void
+    {
+        /** @var \DBmysql $DB */
+        global $DB;
+
+        $DB->delete(self::getTable(), ['users_id' => $item->getID()]);
+    }
+
     public static function getIcon()
     {
         return 'ti ti-window';
@@ -533,7 +583,14 @@ class PluginAccesstransparencyLog extends CommonDBTM
             // The message is rendered with |raw: every value coming from the database must be escaped here.
             switch ($data['source_type']) {
                 case self::LOG:
-                    $logmessage = self::getLogMessage($data);
+                    try {
+                        $logmessage = self::getLogMessage($data);
+                    } catch (\Throwable) {
+                        // The source glpi_logs row may have been purged by the core since the copy: don't break the tab
+                        $tmp['message'] = __s('Item not available or not visible to you', 'accesstransparency');
+                        $logs[] = $tmp;
+                        continue 2;
+                    }
                     // canViewRowItem() already checked that the item exists and is readable
                     $itemtype = $data['itemtype'];
                     $item_label = sprintf('%s #%d', $itemtype::getTypeName(1), $data['items_id']);
@@ -582,11 +639,22 @@ class PluginAccesstransparencyLog extends CommonDBTM
     {
         switch ($data['source_type']) {
             case self::LOG:
+                // Same right as the core item history (Log::$rightname): the plugin right doesn't replace it
+                if (!Session::haveRight(Log::$rightname, READ)) {
+                    return false;
+                }
+                $itemtype = (string) ($data['itemtype'] ?? '');
+                $items_id = (int) ($data['items_id'] ?? 0);
+                break;
             case self::DOCUMENT:
                 $itemtype = (string) ($data['itemtype'] ?? '');
                 $items_id = (int) ($data['items_id'] ?? 0);
                 break;
             case self::EVENT:
+                // Same right as the core event log (Event::$rightname), whatever the item the event concerns
+                if (!Session::haveRight(Glpi\Event::$rightname, READ)) {
+                    return false;
+                }
                 // `field` holds the itemtype resolved from the glpi_events type (since 1.3.0, backfilled on upgrade),
                 // see getEventItemtypeField(): '' for core "system" events, NULL when the itemtype is unknown
                 // (type not resolvable, plugin disabled, source event purged before the backfill).

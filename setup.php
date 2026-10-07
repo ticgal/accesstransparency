@@ -73,6 +73,10 @@ function plugin_init_accesstransparency(): void
     // Document downloads are tracked server-side (see hook.php)
     $PLUGIN_HOOKS[Hooks::POST_INIT]['accesstransparency'] = 'plugin_accesstransparency_track_document_download';
 
+    $PLUGIN_HOOKS[Hooks::ITEM_PURGE]['accesstransparency'] = [
+        User::class => [PluginAccesstransparencyLog::class, 'itemPurge'],
+    ];
+
     $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['accesstransparency'] = 'front/config.form.php';
 
     CronTask::register(

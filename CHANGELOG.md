@@ -1,5 +1,21 @@
 # Changelog for AccessTransparency
 
+## [1.3.1-beta.1] - 2026-10-07
+### Changed
+- New installations keep the records for 12 months by default instead of keeping them all (existing installations keep their setting)
+- The configuration page states that the core log and event purge settings do not apply to the records kept by the plugin
+- The records of a user are deleted when the user is purged
+- Update locales
+
+### Security
+- User tab, its CSV and single-item reads require the core `logs` right for item history rows and the `system_logs` right for event rows, on top of the plugin right
+- Document downloads are recorded by the script that serves the request (a trailing path segment no longer skips the record) and for `GET /api.php/Management/Document/{id}/Download` (High-Level API); the raw download of the legacy REST API remains untracked
+- A download made while impersonating is recorded against the impersonator, and the exclusion list is checked for both accounts
+- The impersonated user is added to a history row only when the whole user name is the translated "impersonated by" sentence (any core language), so renaming a user can no longer copy their actions into another user's trail
+
+### Fixed
+- A history row whose source `glpi_logs` entry was purged by the core no longer breaks the User tab
+
 ## [1.3.0] - 2026-10-06
 ### Added
 - Server-side tracking of document downloads, whatever the way the document is opened
