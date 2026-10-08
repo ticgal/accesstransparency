@@ -52,6 +52,9 @@ msgstr ""
 msgid "Log retention"
 msgstr ""
 
+msgid "The core log and event purge settings do not apply to the records kept by this plugin: only this retention does. The records of a user are deleted when the user is purged."
+msgstr ""
+
 msgid "Excluded logins"
 msgstr ""
 

@@ -52,6 +52,21 @@ function plugin_accesstransparency_install(): bool
 
     plugin_accesstransparency_migrate_legacy_tables($migration);
 
+    // Registered here and not on every request; register() ignores tasks that already exist
+    foreach (
+        [
+            [PluginAccesstransparencyConfig::class, 'PurgeAccessTransparencyLogs'],
+            [PluginAccesstransparencyLog::class, 'PluginAccesstransparencyGetLogs'],
+        ] as [$itemtype, $name]
+    ) {
+        CronTask::register($itemtype, $name, HOUR_TIMESTAMP, [
+            'state' => 1,
+            'mode' => CronTask::MODE_EXTERNAL,
+            'hourmin' => 0,
+            'hourmax' => 24,
+        ]);
+    }
+
     return true;
 }
 
@@ -164,13 +179,24 @@ function plugin_accesstransparency_record_document_response(\Symfony\Component\H
     $request = $event->getRequest();
     $response = $event->getResponse();
 
-    // Path relative to the GLPI base path (root_doc), without the query string: the exact legacy script.
     // GET only: HEAD gets the headers, not the document.
-    if (
-        !$event->isMainRequest()
-        || $request->getPathInfo() !== '/front/document.send.php'
-        || !$request->isMethod('GET')
-    ) {
+    if (!$event->isMainRequest() || !$request->isMethod('GET')) {
+        return;
+    }
+
+    // The script that serves the request, not the raw path: the legacy router also resolves
+    // "/front/document.send.php/<anything>" to this script.
+    $script = $request->attributes->get(\Glpi\Controller\LegacyFileLoadController::REQUEST_FILE_KEY);
+    $send_script = realpath(GLPI_ROOT . '/front/document.send.php');
+    $is_legacy_send = is_string($script) && $send_script !== false && realpath($script) === $send_script;
+
+    // High-Level API v2: GET /api.php[/v2.x]/Management/Document/{id}/Download
+    $api_docid = null;
+    if (preg_match('#^/api\.php(?:/v\d+(?:\.\d+)*)?/Management/Document/(\d+)/Download/?$#', $request->getPathInfo(), $matches)) {
+        $api_docid = (int) $matches[1];
+    }
+
+    if (!$is_legacy_send && $api_docid === null) {
         return;
     }
     // 200: file sent, 304: authorized re-open of the copy cached by the browser
@@ -178,10 +204,20 @@ function plugin_accesstransparency_record_document_response(\Symfony\Component\H
         return;
     }
 
-    $docid = filter_var($request->query->get('docid'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    $users_id = Session::getLoginUserID();
-    if ($docid === false || !$users_id || PluginAccesstransparencyConfig::isUserExcluded()) {
+    $docid = $is_legacy_send
+        ? filter_var($request->query->get('docid'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+        : $api_docid;
+
+    // While impersonating, the session is the impersonated user's: the actor is the impersonator
+    $users_id = Session::getImpersonatorId() ?? Session::getLoginUserID();
+    if ($docid === false || $docid < 1 || !$users_id || PluginAccesstransparencyConfig::isUserExcluded()) {
         return;
+    }
+    if (Session::isImpersonateActive()) {
+        $impersonator = new User();
+        if (!$impersonator->getFromDB($users_id) || PluginAccesstransparencyConfig::isUserExcluded((string) $impersonator->fields['name'])) {
+            return;
+        }
     }
 
     // Recording must never break the download
@@ -193,9 +229,9 @@ function plugin_accesstransparency_record_document_response(\Symfony\Component\H
 
         // The Documents tab of an item links with itemtype/items_id, the ITIL timeline with tickets_id,
         // changes_id or problems_id (the legacy parameters are only read when itemtype is absent, like the core does)
-        $itemtype = $request->query->get('itemtype');
-        $items_id = $request->query->get('items_id');
-        if ($itemtype === null) {
+        $itemtype = $is_legacy_send ? $request->query->get('itemtype') : null;
+        $items_id = $is_legacy_send ? $request->query->get('items_id') : null;
+        if ($is_legacy_send && $itemtype === null) {
             foreach (['tickets_id' => Ticket::class, 'changes_id' => Change::class, 'problems_id' => Problem::class] as $param => $class) {
                 if ($request->query->has($param)) {
                     $itemtype = $class;
@@ -215,7 +251,7 @@ function plugin_accesstransparency_record_document_response(\Symfony\Component\H
             'itemtype'        => Document::getType(),
             'items_id'        => $docid,
             'users_id'        => $users_id,
-            'new_value'       => '/front/document.send.php?docid=' . $docid,
+            'new_value'       => $is_legacy_send ? '/front/document.send.php?docid=' . $docid : $request->getPathInfo(),
             'source_itemtype' => $source[0] ?? null,
             'source_items_id' => $source[1] ?? 0,
         ]);

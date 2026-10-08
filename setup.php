@@ -31,9 +31,9 @@
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_ACCESSTRANSPARENCY_VERSION', '1.3.0');
-define('PLUGIN_ACCESSTRANSPARENCY_MIN_GLPI', '11.0');
-define('PLUGIN_ACCESSTRANSPARENCY_MAX_GLPI', '11.9');
+define('PLUGIN_ACCESSTRANSPARENCY_VERSION', '1.3.1');
+define('PLUGIN_ACCESSTRANSPARENCY_MIN_GLPI', '11.0.0');
+define('PLUGIN_ACCESSTRANSPARENCY_MAX_GLPI', '11.0.99');
 
 /**
  * Plugin_Version_accesstransparency
@@ -73,29 +73,9 @@ function plugin_init_accesstransparency(): void
     // Document downloads are tracked server-side (see hook.php)
     $PLUGIN_HOOKS[Hooks::POST_INIT]['accesstransparency'] = 'plugin_accesstransparency_track_document_download';
 
+    $PLUGIN_HOOKS[Hooks::ITEM_PURGE]['accesstransparency'] = [
+        User::class => [PluginAccesstransparencyLog::class, 'itemPurge'],
+    ];
+
     $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['accesstransparency'] = 'front/config.form.php';
-
-    CronTask::register(
-        'PluginAccesstransparencyConfig',
-        'PurgeAccessTransparencyLogs',
-        HOUR_TIMESTAMP,
-        [
-            'state' => 1,
-            'mode' => CronTask::MODE_EXTERNAL,
-            'hourmin' => 0,
-            'hourmax' => 24,
-        ],
-    );
-
-    CronTask::register(
-        'PluginAccesstransparencyLog',
-        'PluginAccesstransparencyGetLogs',
-        HOUR_TIMESTAMP,
-        [
-            'state' => 1,
-            'mode' => CronTask::MODE_EXTERNAL,
-            'hourmin' => 0,
-            'hourmax' => 24,
-        ],
-    );
 }

@@ -54,6 +54,9 @@ msgstr "Configuración de los registros de Access Transparency"
 msgid "Log retention"
 msgstr "Retención de registros"
 
+msgid "The core log and event purge settings do not apply to the records kept by this plugin: only this retention does. The records of a user are deleted when the user is purged."
+msgstr "Los ajustes de purga de registros y eventos del núcleo de GLPI no se aplican a los registros que conserva este plugin: solo se aplica esta retención. Los registros de un usuario se eliminan cuando se purga el usuario."
+
 msgid "Excluded logins"
 msgstr "Logins excluidos"
 
